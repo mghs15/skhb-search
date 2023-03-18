@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>SKHB検索</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script>
+
+const globalInfo = {
+  "text": "",
+  "list": [],
+  "tempList": [],
+  "index": {}
+}
+
+const addCard = () => {
+  console.log("add");
+  const selectedFile = document.getElementById('addCard').files[0];
+  console.log(selectedFile);
+  
+  const reader = new FileReader();
+  reader.onload = () => {
+    
+    if(!reader.result) return;
+    
+    globalInfo.text = reader.result;
+    globalInfo.list = globalInfo.text.split(/(\r\n|\n)/g);
+    
+    const parent = document.getElementById('wrap');
+    parent.innerHTML = "読み込み完了！（" + globalInfo.list.length + "件）";
+    
+    //メモリを食うっぽいので、最初は表示しない
+    //renderFromList(globalInfo.list);
+    
+  }
+  
+  reader.readAsText(selectedFile, 'shift-jis');
+}
+
+const headerInfo = [
+  "市町村コード",
+  "都道府県名及び市町村名",
+  "NO",
+  "施設・場所名",
+  "住所",
+  "洪水",
+  "崖崩れ、土石流及び地滑り",
+  "高潮",
+  "地震",
+  "津波",
+  "大規模な火事",
+  "内水氾濫",
+  "火山現象",
+  "指定避難所との重複",
+  "緯度",
+  "経度",
+  "備考"
+];
+
+const headerShortInfo = [
+  "コード",
+  "市町村名",
+  "NO",
+  "施設・場所名",
+  "住所",
+  "洪水",
+  "土石",
+  "高潮",
+  "地震",
+  "津波",
+  "火事",
+  "内水",
+  "火山",
+  "重複",
+  "地図①",
+  "地図②",
+  "地図③",
+  ""
+];
+
+const createHeader = (array) => {
+  
+  let h = "<div class='table-row table-header'>";
+  
+  array.forEach( c => {
+    if(c)  h += `<div class='cell'>${c}</div>`; // 市町村コード
+  });
+
+  h += "</div>";
+  return h;
+}
+
+
+const createRowComp = (array) => {
+  
+  let row = "<div class='table-row'>";
+  row += `<div class='cell'>${array[0]}</div>`; // 市町村コード
+  row += `<div class='cell'>${array[1]}</div>`; // 都道府県名及び市町村名
+  row += `<div class='cell'>${array[2]}</div>`; // NO
+  row += `<div class='cell'>${array[3]}</div>`; // 施設・場所名
+  row += `<div class='cell'>${array[4]}</div>`; // 住所
+  
+  let dnum = 0;
+  let sc = 5; // Start Column;
+  
+  for(let i = sc; i < sc + 8; i++){
+    if(array[i] && array[i] == "1"){
+      row += `<div class='cell'><div class='disasterType'>${headerShortInfo[i]}</div></div>`;
+      if(!dnum) dnum = i - sc + 1;
+    }else{
+      row += `<div class='cell'></div>`;
+    }
+  }
+  
+  row += `<div class='cell'>${array[13]}</div>`; // 指定避難所との重複
+  
+  const lat = +array[14];
+  const lng = +array[15];
+  
+  const gsimapsUrl = `https://maps.gsi.go.jp/#16/${lat}/${lng}/&base=std&ls=std|skhb0${dnum}&disp=11&lcd=skhb0${dnum}&vs=c1g1j0h0k0l0u0t0z0r0s0m0f1&d=m`;
+  const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
+  const googlmapUrl = `https://www.google.co.jp/maps/@${lat},${lng},350m/data=!3m1!1e3?hl=ja`;
+  
+  row += `<div class='cell map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div>`;
+  row += `<div class='cell map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div>`;
+  row += `<div class='cell map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGL</a></div>`;
+  
+  row += "</div>"; // class='table-row'
+  
+  if(array[16]) row += `<div class='table-row-note'>※備考：${array[16]}</div>`;
+  
+  return row;
+  
+}
+
+
+const renderFromList = (list) => {
+  
+  globalInfo.tempList = list;
+  setCsv();
+  
+  let res = "";
+  
+  if(list.length < 1) res += "結果はありません。";
+  
+  if(list.length > 1000){
+    const answer = window.confirm("結果は" + list.length + "件です。すべて表示しますか？");
+    if(!answer){
+      res += "一部（1000件/" + list.length + "件）のみ表示します。";
+      list.splice(1000);
+    }
+  }else{
+    res += "結果は" + list.length + "件です。";
+  }
+  
+  res += "<div class='table'>";
+  
+  res += createHeader(headerShortInfo);
+  
+  for(i in list){
+    const f = list[i];
+    
+    if(!f) continue;
+    
+    const c = f.split(",");
+    
+    const de = createRowComp(c);
+    
+    res += de;
+  }
+  
+  res += "</div>"; // class = 'table'
+  
+  const parent = document.getElementById('wrap');
+  parent.innerHTML = res;
+
+}
+
+const searchFiles = () => {
+  
+  const isNameOnly = document.getElementById("onlyName").checked;
+  const isAddrOnly = document.getElementById("onlyAddr").checked;
+  
+  const isDtypeOnly = document.getElementById("onlyDtype").checked;
+  
+  console.log(isNameOnly, isAddrOnly, isDtypeOnly);
+  
+  let result = globalInfo.list;
+  
+  if(isNameOnly){
+    result = searchList(result, 3)
+  }else if(isAddrOnly){
+    result = searchList(result, 4)
+  }{
+    result = searchList(result)
+  };
+  
+  if(isDtypeOnly){
+    let sc = 5;
+    if(document.getElementById("d01").checked) result = result.filter(f => (f.split(",")[sc+0] == "1"));
+    if(document.getElementById("d02").checked) result = result.filter(f => (f.split(",")[sc+1] == "1"));
+    if(document.getElementById("d03").checked) result = result.filter(f => (f.split(",")[sc+2] == "1"));
+    if(document.getElementById("d04").checked) result = result.filter(f => (f.split(",")[sc+3] == "1"));
+    if(document.getElementById("d05").checked) result = result.filter(f => (f.split(",")[sc+4] == "1"));
+    if(document.getElementById("d06").checked) result = result.filter(f => (f.split(",")[sc+5] == "1"));
+    if(document.getElementById("d07").checked) result = result.filter(f => (f.split(",")[sc+6] == "1"));
+    if(document.getElementById("d08").checked) result = result.filter(f => (f.split(",")[sc+7] == "1"));
+  }
+  
+  renderFromList(result);
+  
+}
+
+const searchList = (list, num) => {
+
+  let isTargetColumnOnly = false;
+  if(num && num > -1){
+    isTargetColumnOnly = true;
+  }
+  
+  let result = list.filter(f => f.match(/\S/));
+  
+  const word = document.getElementById("searchWord").value;
+  const words = word.split(/(\s|　)/g);
+  
+  words.forEach( w => {
+    if( !w || w == "　" || !w.match(/\S/)) return;
+    if(isTargetColumnOnly){
+      result = result.filter(f => f.split(",")[num].match(w));
+    }else{
+      result = result.filter(f => f.match(w));
+    }
+  });
+  
+  
+  //console.log(result);
+  
+  const outword = document.getElementById("excludeWord").value;
+  const outwords = outword.split(/(\s|　)/g);
+  
+  if(outwords && outwords.length > 0){
+    outwords.forEach( w => {
+      if( !w || w == "　" || !w.match(/\S/)) return;
+    if(isTargetColumnOnly){
+      result = result.filter(f => !f.split(",")[num].match(w));
+    }else{
+      result = result.filter(f => !f.match(w));
+    }
+    });
+  }
+  
+  console.log(words);
+  console.log(outwords);
+  
+  return result;
+  
+}
+
+setCsv = () => {
+  
+  let res = headerInfo.join(",");
+  globalInfo.tempList.forEach( line => {
+    res += line + "\r\n";
+  });
+  const blob = new Blob([res], {type: 'text\/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById('download');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = "skhb.csv";
+  
+}
+
+</script>
+
+<style>
+body{
+}
+
+#info div {
+  display: inline-block;
+}
+
+.passComp {
+  margin-left: 4px;
+  margin-right: 4px;
+  margin-top:4px;
+  border-radius: 4px;
+  background-color: #CCFFDD;
+}
+
+.dupComp {
+  background-color: #DDDDDD;
+}
+
+#title {
+  background-color: #000000;
+  color: #FFFFFF;
+  border-radius: 4px;
+  margin: 8px;
+  padding: 4px;
+}
+ 
+#abstruct {
+  margin: 8px;
+  padding: 4px;
+}
+
+#note {
+  margin: 8px;
+  padding: 4px;
+  color: #FF0000;
+}
+
+#info {
+  margin: 8px;
+  padding: 4px;
+}
+
+#wrap {
+  margin: 8px;
+  padding: 4px;
+}
+
+
+.table {
+  display: grid;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px 40px 40px 40px;
+}
+
+.table-header {
+}
+
+.table-row-note {
+  display: grid;
+  padding-left: 2em;
+}
+
+.cell {
+  display: inline-block;
+  padding: 2px;
+  border: solid 1px #AAAAAA;
+}
+
+.disasterType {
+  display: inline-block;
+  font-size: 0.8em;
+  border-radius: 0.2em;
+  background-color: #EEEEEE;
+  text-align: center
+}
+
+.map-link {
+  text-align: center
+}
+
+#info div {
+  padding-bottom: 4px;
+}
+
+
+</style>
+
+</head>
+<body>
+
+<div id="overlayLargeImageSpace"></div>
+<div id="overlayLock"></div>
+<div id="page">
+  <div id="title">
+  指定緊急避難場所　簡易検索サイト（個人サイト）
+  </div>
+  <div id="abstruct">
+  国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
+  <br>
+  本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
+  </div>
+  <div id="note">
+  ※試験中です。誤った結果が出力されることもありますので、ご注意ください。
+  </div>
+  <div id="info">
+    
+    CSVデータ：
+    <div id="infoAddCardButton"><input type="file" id="addCard" onChange="addCard();"></div>
+    ※お手持ちのCSVデータを取り込んでください。
+    
+    <hr>
+    
+    文字列検索：
+    <div id="searchInputArea1"><input type="text" id="searchWord">を含む / </div>
+    <div id="searchInputArea2"><input type="text" id="excludeWord">を含まない</div>
+    
+    <br>
+    
+    検索対象：
+    <!--
+    <div id="searchInputArea3">
+      <input type="radio" id="all" name="searchTarget" value="all" />
+      <label for="all">全体検索</label>
+      <input type="radio" id="onlyName" name="searchTarget" value="onlyName" checked />
+      <label for="onlyName">検索対象を「施設・場所名」に絞る</label>
+      <input type="radio" id="onlyName" name="searchTarget" value="onlyAddr" />
+      <label for="onlyName">検索対象を「住所」に絞る</label>
+    </div>
+    -->
+    <div id="searchInputArea3">
+      <input type="checkbox" id="onlyDtype" name="onlyDtype" >種別で絞る
+      <input type="checkbox" id="onlyName" name="onlyName" checked="checked">「施設・場所名」で絞る
+      <input type="checkbox" id="onlyAddr" name="onlyAddr" >「住所」で絞る
+    </div>
+    
+    <br>
+    
+    種別で絞る場合：
+    <div id="searchInputArea4">
+      <input type="checkbox" id="d01" name="d01" checked="checked" >洪水
+      <input type="checkbox" id="d02" name="d02" >土砂
+      <input type="checkbox" id="d03" name="d03" >高潮
+      <input type="checkbox" id="d04" name="d04" >地震
+      <input type="checkbox" id="d05" name="d05" >津波
+      <input type="checkbox" id="d06" name="d06" >火事
+      <input type="checkbox" id="d07" name="d07" >内水
+      <input type="checkbox" id="d08" name="d08" >火山
+    
+    </div>
+    
+    <br>
+    
+    <div id="infoSearchButton"><button id="searchButton" onClick="searchFiles();">絞り込み</button></div>
+    <div id="infoSearchButton"><a id="download" target="_blank">CSV出力</a></div>
+    
+  </div>
+  <div id="wrap">
+  </div>
+</div>
+
+<script>
+  
+</script>
+
+</body>
+</html>
+
+
