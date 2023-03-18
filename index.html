@@ -191,7 +191,7 @@ const searchFiles = () => {
     result = searchList(result, 3)
   }else if(isAddrOnly){
     result = searchList(result, 4)
-  }{
+  }else{
     result = searchList(result)
   };
   
@@ -222,6 +222,8 @@ const searchList = (list, num) => {
   
   const word = document.getElementById("searchWord").value;
   const words = word.split(/(\s|　)/g);
+  
+  console.log(num, result[0].split(",")[num]);
   
   words.forEach( w => {
     if( !w || w == "　" || !w.match(/\S/)) return;
@@ -276,21 +278,6 @@ setCsv = () => {
 body{
 }
 
-#info div {
-  display: inline-block;
-}
-
-.passComp {
-  margin-left: 4px;
-  margin-right: 4px;
-  margin-top:4px;
-  border-radius: 4px;
-  background-color: #CCFFDD;
-}
-
-.dupComp {
-  background-color: #DDDDDD;
-}
 
 #title {
   background-color: #000000;
@@ -314,6 +301,18 @@ body{
 #info {
   margin: 8px;
   padding: 4px;
+}
+
+.searchInputArea {
+  border-radius: 4px;
+  border: solid 1px #EEEEEE;
+  padding: 4px;
+  margin: 2px;
+}
+
+#infoSearchButtonArea {
+  padding: 4px;
+  margin: 2px;
 }
 
 #wrap {
@@ -383,19 +382,25 @@ body{
   </div>
   <div id="info">
     
-    CSVデータ：
-    <div id="infoAddCardButton"><input type="file" id="addCard" onChange="addCard();"></div>
-    ※お手持ちのCSVデータを取り込んでください。
+    <div id="infoAddCardButton" class="searchInputArea">
+      CSVデータ：
+      <input type="file" id="addCard" onChange="addCard();">
+      ※お手持ちのCSVデータを取り込んでください。
+    </div>
     
     <hr>
     
-    文字列検索：
-    <div id="searchInputArea1"><input type="text" id="searchWord">を含む / </div>
-    <div id="searchInputArea2"><input type="text" id="excludeWord">を含まない</div>
+    <div id="searchInputArea1" class="searchInputArea">
+      文字列検索：
+      <input type="text" id="searchWord" size="50">を含む / 
+      <input type="text" id="excludeWord">を含まない
+      <br>
+      　→　検索対象：
+      <input type="checkbox" id="onlyName" name="onlyName" checked="checked">「施設・場所名」
+      <input type="checkbox" id="onlyAddr" name="onlyAddr" >「住所」
+      <input type="checkbox" id="allLine" name="allLine" >全体
+    </div>
     
-    <br>
-    
-    検索対象：
     <!--
     <div id="searchInputArea3">
       <input type="radio" id="all" name="searchTarget" value="all" />
@@ -406,17 +411,14 @@ body{
       <label for="onlyName">検索対象を「住所」に絞る</label>
     </div>
     -->
-    <div id="searchInputArea3">
-      <input type="checkbox" id="onlyDtype" name="onlyDtype" >種別で絞る
-      <input type="checkbox" id="onlyName" name="onlyName" checked="checked">「施設・場所名」で絞る
-      <input type="checkbox" id="onlyAddr" name="onlyAddr" >「住所」で絞る
-    </div>
     
-    <br>
     
-    種別で絞る場合：
-    <div id="searchInputArea4">
-      <input type="checkbox" id="d01" name="d01" checked="checked" >洪水
+    <div id="searchInputArea4" class="searchInputArea">
+      種別で検索：
+      <input type="checkbox" id="onlyDtype" name="onlyDtype" checked="checked" >種別で絞る
+      <br>
+      　→　種別選択：
+      <input type="checkbox" id="d01" name="d01" >洪水
       <input type="checkbox" id="d02" name="d02" >土砂
       <input type="checkbox" id="d03" name="d03" >高潮
       <input type="checkbox" id="d04" name="d04" >地震
@@ -424,13 +426,12 @@ body{
       <input type="checkbox" id="d06" name="d06" >火事
       <input type="checkbox" id="d07" name="d07" >内水
       <input type="checkbox" id="d08" name="d08" >火山
-    
     </div>
     
-    <br>
-    
-    <div id="infoSearchButton"><button id="searchButton" onClick="searchFiles();">絞り込み</button></div>
-    <div id="infoSearchButton"><a id="download" target="_blank">CSV出力</a></div>
+    <div id="infoSearchButtonArea">
+      <button id="searchButton" onClick="searchFiles();">絞り込み</button>
+      <a id="download" target="_blank">CSV出力</a>
+    </div>
     
   </div>
   <div id="wrap">
