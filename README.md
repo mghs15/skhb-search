@@ -21,7 +21,7 @@ https://mghs15.github.io/skhb-search/
 
 ## Reference
 * 指定緊急避難場所（国土地理院）https://www.gsi.go.jp/bousaichiri/hinanbasho.html
-* Leaflet href="https://leafletjs.com/
+* Leaflet https://leafletjs.com/
 * Leaflet.markercluster https://github.com/Leaflet/Leaflet.markercluster"
 * 地理院タイル https://maps.gsi.go.jp/development/ichiran.html
 
