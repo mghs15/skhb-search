@@ -17,6 +17,12 @@ https://mghs15.github.io/skhb-search/
 * CSV の行全体と一部（施設・場所名 or 住所）を対象として文字列検索（正規表現利用可）
 * 種別ごとの絞り込みも可
 * CSV （ヘッダー付き）で出力可能
+* 地図への表示・範囲での絞り込みも可能
 
+## Reference
+* 指定緊急避難場所（国土地理院）https://www.gsi.go.jp/bousaichiri/hinanbasho.html
+* Leaflet href="https://leafletjs.com/
+* Leaflet.markercluster https://github.com/Leaflet/Leaflet.markercluster"
+* 地理院タイル https://maps.gsi.go.jp/development/ichiran.html
 
 
