@@ -132,7 +132,7 @@ const createRowComp = (array) => {
   const googlmapUrl = `https://www.google.co.jp/maps/@${lat},${lng},350m/data=!3m1!1e3?hl=ja`;
   
   row += "<div class='cell map-tools'>"
-  
+  row += `<div class='map-move' title='地図を移動'><button onClick="map.setView([${lat}, ${lng}], 16);">移動</button></div> / `;
   row += `<div class='map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div> / `;
   row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> /`;
   row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGL</a></div>`;
@@ -241,7 +241,24 @@ const searchFiles = () => {
     if(document.getElementById("d08").checked) result = result.filter(f => (f.split(",")[sc+7] == "1"));
   }
   
+  const isMapOnly = document.getElementById("onlyMap").checked;
   
+  if(isMapOnly){
+    if(!map){
+      alert("地図の情報が取得できません。地図範囲での絞り込みは行いません");
+    }else{
+      const b = map.getBounds();
+      console.log(b);
+      result = result.filter(f => (
+        +f.split(",")[14] > b._southWest.lat &&
+        +f.split(",")[15] > b._southWest.lng &&
+        +f.split(",")[14] < b._northEast.lat &&
+        +f.split(",")[15] < b._northEast.lng
+      ));
+    }
+  }
+  
+  showOnMap(result);
   renderFromList(result);
   
 }
@@ -451,6 +468,11 @@ body{
 }
 
 #map {
+  height: 300px; 
+  border: 1px solid #CCCCCC;
+  margin: 8px;
+  padding: 4px;
+  resize: vertical;
 }
 
 #refelence {
@@ -476,7 +498,6 @@ body{
   </div>
   <div id="abstruct">
   国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
-  地図付きは<a href="./index-with-map.html">こちら</a>。
   <br>
   本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
   </div>
@@ -541,10 +562,14 @@ body{
       <input type="checkbox" id="d08" name="d08" >火山
     </div>
     
+    <div id="searchInputArea5" class="searchInputArea geomSearchCondition">
+      <input type="checkbox" id="onlyMap" name="onlyMap" >地図の範囲に絞る
+    </div>
     
     <div id="infoSearchButtonArea">
       <button id="searchButton" onClick="searchFiles();">絞り込み</button>
       <a id="download" target="_blank">CSV出力</a>
+      <input type="checkbox" id="showOnMap" name="showOnMap" checked="checked" >地図に表示
     </div>
     
   </div>
@@ -559,9 +584,79 @@ body{
 
 <div id="refelence">
   <a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html">指定緊急避難場所（国土地理院）</a> |
+  <a href="https://leafletjs.com/">Leaflet</a> |
+  <a href="https://github.com/Leaflet/Leaflet.markercluster">Leaflet.markercluster</a> |
+  <a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>
 </div>
 
 <script>
+const tiles = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>'
+})
+
+const latlng = L.latLng(35, 135);
+
+const map = L.map('map', {center: latlng, zoom: 5, layers: [tiles]});
+
+
+let markers;
+  
+const showOnMap = (result) => {
+  
+  if(markers)  map.removeLayer(markers);
+  
+  const isShowOnMap = document.getElementById("showOnMap").checked;
+  if(!isShowOnMap) return;
+  
+  markers = L.markerClusterGroup();
+  
+  const geojson = {
+    "type": "FeatureCollection",
+    "features": []
+  };
+  
+  result.forEach( line => {
+    const c = line.split(",");
+    
+    if(c && c[14] &&  c[15]){
+      geojson.features.push({
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [c[15], c[14]]
+        },
+        "properties": {
+          "name": c[3],
+          "attr": line
+        }
+      })
+    }
+    
+  });
+
+  for (var i = 0; i < geojson.features.length; i++) {
+    const a = geojson.features[i];
+    const title = a.properties.name;
+    const marker = L.marker(new L.LatLng(a.geometry.coordinates[1], a.geometry.coordinates[0]), { title: title });
+    marker.bindPopup( createPopupComp(a.properties.attr.split(",")) );
+    markers.addLayer(marker);
+  }
+
+  map.addLayer(markers);
+
+}
+
+const createPopupComp = (array) => {
+  let res = "<div class='popup-content'>";
+  
+  res += createRowComp(array);
+  
+  res += "</div>";
+  
+  return res;
+}
+
 
 </script>
 
