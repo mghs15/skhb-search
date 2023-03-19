@@ -151,7 +151,6 @@ const createRowComp = (array) => {
 
 const renderFromList = (list) => {
   
-  globalInfo.tempList = JSON.parse(JSON.stringify(list));
   let result = JSON.parse(JSON.stringify(list));
   
   let res = "";
@@ -260,6 +259,7 @@ const searchFiles = () => {
     }
   }
   
+  globalInfo.tempList = JSON.parse(JSON.stringify(result));
   showOnMap(result);
   setCsv(result);
   renderFromList(result);
@@ -500,6 +500,7 @@ body{
   </div>
   <div id="abstruct">
   国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
+  2023年3月19日時点のデータを前提に作成しています。
   <br>
   本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
   </div>
@@ -572,6 +573,7 @@ body{
       <button id="searchButton" onClick="searchFiles();">絞り込み</button>
       <a id="download" target="_blank">CSV出力</a>
       <input type="checkbox" id="showOnMap" name="showOnMap" checked="checked" >地図に表示
+      <a id="download-geojson" target="_blank">GeoJSON出力</a>
     </div>
     
   </div>
@@ -621,6 +623,8 @@ const showOnMap = (result) => {
   result.forEach( line => {
     const c = line.split(",");
     
+    let sc = 5;
+    
     if(c && c[14] &&  c[15]){
       geojson.features.push({
         "type": "Feature",
@@ -630,7 +634,17 @@ const showOnMap = (result) => {
         },
         "properties": {
           "name": c[3],
-          "attr": line
+          "都道府県名及び市町村名": c[1],
+          "洪水": c[sc+0],
+          "崖崩れ、土石流及び地滑り": c[sc+1],
+          "高潮": c[sc+2],
+          "地震": c[sc+3],
+          "津波": c[sc+4],
+          "大規模な火事": c[sc+5],
+          "内水氾濫": c[sc+6],
+          "火山現象": c[sc+7],
+          "指定避難所との重複": c[13],
+          "_rawdata": line
         }
       })
     }
@@ -641,11 +655,15 @@ const showOnMap = (result) => {
     const a = geojson.features[i];
     const title = a.properties.name;
     const marker = L.marker(new L.LatLng(a.geometry.coordinates[1], a.geometry.coordinates[0]), { title: title });
-    marker.bindPopup( createPopupComp(a.properties.attr.split(",")) );
+    marker.bindPopup( createPopupComp(a.properties._rawdata.split(",")) );
     markers.addLayer(marker);
+    //再利用しないことを前提に属性値を削除
+    delete a.properties._rawdata;
   }
 
   map.addLayer(markers);
+  
+  setGeoJSON(geojson);
 
 }
 
@@ -659,6 +677,17 @@ const createPopupComp = (array) => {
   return res;
 }
 
+
+setGeoJSON = (json) => {
+  
+  let res = JSON.stringify(json);
+  const blob = new Blob([res], {type: 'application\/geo+json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById('download-geojson');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = "skhb.geojson";
+  
+}
 
 </script>
 

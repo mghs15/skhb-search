@@ -144,7 +144,6 @@ const createRowComp = (array) => {
 
 const renderFromList = (list) => {
   
-  globalInfo.tempList = JSON.parse(JSON.stringify(list));
   let result = JSON.parse(JSON.stringify(list));
   
   let res = "";
@@ -237,6 +236,7 @@ const searchFiles = () => {
   }
   
   
+  globalInfo.tempList = JSON.parse(JSON.stringify(result));
   setCsv(result);
   renderFromList(result);
   
@@ -472,7 +472,7 @@ body{
   </div>
   <div id="abstruct">
   国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
-  地図付きは<a href="./index-with-map.html">こちら</a>。
+  地図付きは<a href="./index-with-map.html">こちら</a>。2023年3月19日時点のデータを前提に作成しています。
   <br>
   本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
   </div>
