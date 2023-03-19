@@ -82,11 +82,6 @@ const headerShortInfo = [
   "内水",
   "火山",
   "重複",
-  "地図",
-  "",
-  "",
-  "",
-  ""
 ];
 
 const createHeader = (array) => {
@@ -94,9 +89,11 @@ const createHeader = (array) => {
   let h = "<div class='table-row table-header'>";
   
   array.forEach( c => {
-    if(c)  h += `<div class='cell'>${c}</div>`; // 市町村コード
+    if(c)  h += `<div class='cell'>${c}</div>`;
   });
-
+  
+  h += `<div class='cell map-tools'>地図</div>`;
+  
   h += "</div>";
   return h;
 }
@@ -350,7 +347,7 @@ const addInputArea = () => {
         <option value="15">経度</option>
         <option value="16">備考</option>
       </select>
-      に<input type="text" class="searchWord" size="50">を
+      に<input type="text" class="searchWord" size="45">を
       <select class="inout">
         <option value="in">含む</option>
         <option value="out">含まない</option>
@@ -381,7 +378,7 @@ body{
 
 
 #title {
-  background-color: #000000;
+  background-color: #000066;
   color: #FFFFFF;
   border-radius: 4px;
   margin: 8px;
@@ -402,18 +399,23 @@ body{
 #info {
   margin: 8px;
   padding: 4px;
+  background: linear-gradient(to right, #FFFFFF 49.8%, #BED2FF 49.8%, #BED2FF 50.2%, #FFFFFF 50.2%);
 }
 
 .searchInputArea {
   border-radius: 4px;
-  border: solid 1px #EEEEEE;
+  background-color: #F2F6FF;
+  border: solid 2px #BED2FF;
   padding: 4px;
   margin: 2px;
 }
 
-#infoSearchButtonArea {
+.infoSearchButtonArea {
+  border-radius: 4px;
   padding: 4px;
   margin: 2px;
+  background-color: #FFFFFF;
+  text-align: center;
 }
 
 #wrap {
@@ -442,7 +444,7 @@ body{
 .cell {
   display: inline-block;
   padding: 2px;
-  border: solid 1px #AAAAAA;
+  border: solid 1px #BED2FF;
 }
 
 .disasterType {
@@ -450,7 +452,7 @@ body{
   font-size: 0.8em;
   border-radius: 0.2em;
   background-color: #EEEEEE;
-  text-align: center
+  text-align: center;
 }
 
 .map-tools div {
@@ -466,7 +468,30 @@ body{
 }
 
 #info div {
-  padding-bottom: 4px;
+}
+
+.addInputAreaButtonArea {
+  text-align: center;
+}
+
+button, div.button {
+  cursor: pointer;
+  font-size: 0.8em;
+  display: inline-block;
+  padding: 1px 6px 1px 6px;
+  border-radius: 0.2em;
+  border: solid 1px #AAAAAA;
+  text-align: center;
+  background-color: #F0F0F0;
+}
+
+.button a {
+  color: #AAAAAA;
+}
+
+.button a:link {
+  color: #000000;
+  text-decoration: none;
 }
 
 #map {
@@ -486,6 +511,19 @@ body{
   display: grid;
   grid-template-columns: 1fr;
 }
+
+@media print {
+  #title, #abstruct, #note, #infoAddCardButton,
+  .addInputAreaButtonArea, .infoSearchButtonArea,
+  .map-tools {
+    display: none;
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px;
+  }
+}
+
 
 </style>
 
@@ -539,7 +577,7 @@ body{
           <option value="15">経度</option>
           <option value="16">備考</option>
         </select>
-        に<input type="text" class="searchWord" size="50">を
+        に<input type="text" class="searchWord" size="45">を
         <select class="inout">
           <option value="in">含む</option>
           <option value="out">含まない</option>
@@ -548,13 +586,13 @@ body{
       </div>
     </div>
     
-    <div id="infoSearchButtonArea">
-      検索条件を増やす：<button id="searchButton" onClick="addInputArea();">＋</button>
+    <div class="addInputAreaButtonArea">
+      <button id="searchButton" onClick="addInputArea();">＋</button>
     </div>
     
     <div id="searchInputArea4" class="searchInputArea dtypeSearchCondition">
       <input type="checkbox" id="onlyDtype" name="onlyDtype" checked="checked" >種別で絞る
-      　→　種別選択：
+      　→　
       <input type="checkbox" id="d01" name="d01" >洪水
       <input type="checkbox" id="d02" name="d02" >土砂
       <input type="checkbox" id="d03" name="d03" >高潮
@@ -569,11 +607,11 @@ body{
       <input type="checkbox" id="onlyMap" name="onlyMap" >地図の範囲に絞る
     </div>
     
-    <div id="infoSearchButtonArea">
+    <div class="infoSearchButtonArea">
       <button id="searchButton" onClick="searchFiles();">絞り込み</button>
-      <a id="download" target="_blank">CSV出力</a>
+      <div class="button"><a id="download" target="_blank">CSV出力</a></div>
       <input type="checkbox" id="showOnMap" name="showOnMap" checked="checked" >地図に表示
-      <a id="download-geojson" target="_blank">GeoJSON出力</a>
+      <div class="button"><a id="download-geojson" target="_blank">GeoJSON出力</a></div>
     </div>
     
   </div>
@@ -602,6 +640,7 @@ const tiles = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}
 const latlng = L.latLng(35, 135);
 
 const map = L.map('map', {center: latlng, zoom: 5, layers: [tiles]});
+
 
 
 let markers;
@@ -662,6 +701,7 @@ const showOnMap = (result) => {
   }
 
   map.addLayer(markers);
+  map.invalidateSize();
   
   setGeoJSON(geojson);
 
