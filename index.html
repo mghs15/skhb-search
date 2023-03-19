@@ -34,6 +34,8 @@ const addCard = () => {
     globalInfo.text = reader.result;
     globalInfo.list = globalInfo.text.split(/(\r\n|\n)/g);
     
+    globalInfo.list = globalInfo.list.filter(f => f.match(/\S/));
+    
     const parent = document.getElementById('wrap');
     parent.innerHTML = "読み込み完了！（" + globalInfo.list.length + "件）";
     
@@ -149,29 +151,29 @@ const createRowComp = (array) => {
 
 const renderFromList = (list) => {
   
-  globalInfo.tempList = list;
-  setCsv();
+  globalInfo.tempList = JSON.parse(JSON.stringify(list));
+  let result = JSON.parse(JSON.stringify(list));
   
   let res = "";
   
-  if(list.length < 1) res += "結果はありません。";
+  if(result.length < 1) res += "結果はありません。";
   
-  if(list.length > 1000){
-    const answer = window.confirm("結果は" + list.length + "件です。すべて表示しますか？");
+  if(result.length > 1000){
+    const answer = window.confirm("結果は" + result.length + "件です。すべて表示しますか？");
     if(!answer){
-      res += "一部（1000件/" + list.length + "件）のみ表示します。";
-      list.splice(1000);
+      res += "一部（1000件/" + result.length + "件）のみ表示します。";
+      result.splice(1000);
     }
   }else{
-    res += "結果は" + list.length + "件です。";
+    res += "結果は" + result.length + "件です。";
   }
   
   res += "<div class='table'>";
   
   res += createHeader(headerShortInfo);
   
-  for(i in list){
-    const f = list[i];
+  for(i in result){
+    const f = result[i];
     
     if(!f) continue;
     
@@ -192,7 +194,7 @@ const renderFromList = (list) => {
 const searchFiles = () => {
   
   
-  let result = globalInfo.list;
+  let result = JSON.parse(JSON.stringify(globalInfo.list));
   
   const p = document.getElementById("textSearchConditionsArea")
   const qs = p.querySelectorAll(".searchInputArea");
@@ -259,6 +261,7 @@ const searchFiles = () => {
   }
   
   showOnMap(result);
+  setCsv(result);
   renderFromList(result);
   
 }
@@ -275,7 +278,6 @@ const searchList = (list, num, searchWords, excludeWords) => {
   const word = searchWords;
   const words = word.split(/(\s|　)/g);
   
-  console.log(num, result[0].split(",")[num]);
   
   words.forEach( w => {
     if( !w || w == "　" || !w.match(/\S/)) return;
@@ -308,10 +310,10 @@ const searchList = (list, num, searchWords, excludeWords) => {
   
 }
 
-setCsv = () => {
+setCsv = (result) => {
   
-  let res = headerInfo.join(",");
-  globalInfo.tempList.forEach( line => {
+  let res = headerInfo.join(",") + "\r\n";
+  result.forEach( line => {
     res += line + "\r\n";
   });
   const blob = new Blob([res], {type: 'text\/csv'});
