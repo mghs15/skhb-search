@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
 
+<script src="./lib/leaflet-heat.js"></script>
+
 <script>
 
 const globalInfo = {
@@ -398,8 +400,8 @@ body{
 
 #info {
   margin: 8px;
-  padding: 4px;
   background: linear-gradient(to right, #FFFFFF 49.8%, #BED2FF 49.8%, #BED2FF 50.2%, #FFFFFF 50.2%);
+  text-align: center;
 }
 
 .searchInputArea {
@@ -411,10 +413,14 @@ body{
 }
 
 .infoSearchButtonArea {
+  display: inline-block;
   border-radius: 4px;
   padding: 4px;
-  margin: 2px;
+  margin-top: 2px;
+  margin-left: auto;
+  margin-right: auto;
   background-color: #FFFFFF;
+  border: solid 2px #BED2FF;
   text-align: center;
 }
 
@@ -610,7 +616,8 @@ button, div.button {
     <div class="infoSearchButtonArea">
       <button id="searchButton" onClick="searchFiles();">絞り込み</button>
       <div class="button"><a id="download" target="_blank">CSV出力</a></div>
-      <input type="checkbox" id="showOnMap" name="showOnMap" checked="checked" >地図に表示
+      <input type="checkbox" id="showClusterOnMap" name="showClusterOnMap" checked="checked" >クラスター
+      <input type="checkbox" id="showHeatOnMap" name="showHeatOnMap" checked="checked" >ヒートマップ
       <div class="button"><a id="download-geojson" target="_blank">GeoJSON出力</a></div>
     </div>
     
@@ -628,6 +635,7 @@ button, div.button {
   <a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html">指定緊急避難場所（国土地理院）</a> |
   <a href="https://leafletjs.com/">Leaflet</a> |
   <a href="https://github.com/Leaflet/Leaflet.markercluster">Leaflet.markercluster</a> |
+  <a href="https://github.com/Leaflet/Leaflet.heat">Leaflet.heat</a> |
   <a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>
 </div>
 
@@ -644,13 +652,22 @@ const map = L.map('map', {center: latlng, zoom: 5, layers: [tiles]});
 
 
 let markers;
+let heat;
   
 const showOnMap = (result) => {
   
   if(markers)  map.removeLayer(markers);
+  if(markers)  map.removeLayer(heat);
+  let heatPoints = [];
   
+  /*
   const isShowOnMap = document.getElementById("showOnMap").checked;
   if(!isShowOnMap) return;
+  */
+  
+  const isShowClusterOnMap = document.getElementById("showClusterOnMap").checked;
+  const isShowHeatOnMap = document.getElementById("showHeatOnMap").checked;
+  if(!isShowClusterOnMap && !isShowHeatOnMap) return;
   
   markers = L.markerClusterGroup();
   
@@ -696,11 +713,22 @@ const showOnMap = (result) => {
     const marker = L.marker(new L.LatLng(a.geometry.coordinates[1], a.geometry.coordinates[0]), { title: title });
     marker.bindPopup( createPopupComp(a.properties._rawdata.split(",")) );
     markers.addLayer(marker);
+    
+    heatPoints.push([a.geometry.coordinates[1], a.geometry.coordinates[0], 1]);
+    
     //再利用しないことを前提に属性値を削除
     delete a.properties._rawdata;
   }
-
-  map.addLayer(markers);
+  
+  if(isShowHeatOnMap){
+    heat = L.heatLayer(heatPoints, {radius: 25})
+    heat.addTo(map);
+  }
+  
+  if(isShowClusterOnMap){
+    map.addLayer(markers);
+  }
+  
   map.invalidateSize();
   
   setGeoJSON(geojson);
