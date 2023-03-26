@@ -16,6 +16,17 @@
 
 <script>
 
+const v = (string) => {
+
+  if(!string) return "";
+
+  return string.replace(/&/g,"&amp;")
+    .replace(/"/g,"&quot;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/'/g, "&#39;");
+}
+
 const globalInfo = {
   "text": "",
   "list": [],
@@ -94,7 +105,7 @@ const createHeader = (array) => {
     if(c)  h += `<div class='cell'>${c}</div>`;
   });
   
-  h += `<div class='cell map-tools'>地図</div>`;
+  h += `<div class='cell map-tools'>地図・検索</div>`;
   
   h += "</div>";
   return h;
@@ -102,6 +113,8 @@ const createHeader = (array) => {
 
 
 const createRowComp = (array) => {
+  
+  array = array.map(c => v(c));
   
   let row = "<div class='table-row'>";
   row += `<div class='cell'>${array[0]}</div>`; // 市町村コード
@@ -132,11 +145,14 @@ const createRowComp = (array) => {
   const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
   const googlmapUrl = `https://www.google.co.jp/maps/@${lat},${lng},350m/data=!3m1!1e3?hl=ja`;
   
+  const googleSearchUrl = `https://www.google.com/search?q=${array[3]}+${array[1]}`;
+  
   row += "<div class='cell map-tools'>"
-  row += `<div class='map-move' title='地図を移動'><button onClick="map.setView([${lat}, ${lng}], 16);">移動</button></div> / `;
+  row += `<div class='map-move' title='地図を移動'><a href="#map" onClick="mapViewSet(${lat}, ${lng}, 16);">移動</a></div> / `;
   row += `<div class='map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div> / `;
-  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> /`;
-  row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGL</a></div>`;
+  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> / `;
+  row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGM</a></div> / `;
+  row += `<div class='map-link' title='Googleで検索'><a href='${googleSearchUrl}' target='_blank'>検索</a></div>`;
   row += "</div>"; // class='map-tools'
   
   row += "</div>"; // class='table-row'
@@ -147,6 +163,9 @@ const createRowComp = (array) => {
   
 }
 
+const mapViewSet = (lat, lng, zoom) => {
+  map.setView([lat, lng], zoom);
+}
 
 const renderFromList = (list) => {
   
@@ -436,7 +455,7 @@ body{
 
 .table-row {
   display: grid;
-  grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px 100px;
+  grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px 150px;
 }
 
 .table-header {
