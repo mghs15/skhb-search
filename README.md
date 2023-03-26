@@ -6,8 +6,8 @@
 まだ実装が甘い部分があるかもしれませんので、使用するときは**自己責任**でお願いいたします。
 
 ## 使い方
-
-https://mghs15.github.io/skhb-search/
+Leaflet 版 https://mghs15.github.io/skhb-search/
+Maplibre 版 https://mghs15.github.io/skhb-search/index-maplibre.html
 
 1. まずは手元に指定緊急避難場所の CSV データを準備する。
 2. ツール（index.html）を開いて、CSV データをアップロード。
@@ -21,9 +21,13 @@ https://mghs15.github.io/skhb-search/
 
 ## Reference
 * 指定緊急避難場所（国土地理院）https://www.gsi.go.jp/bousaichiri/hinanbasho.html
+
+### Leaflet 版
 * Leaflet https://leafletjs.com/
 * Leaflet.markercluster https://github.com/Leaflet/Leaflet.markercluster
 * Leaflet.heat https://github.com/Leaflet/Leaflet.heat
 * 地理院タイル https://maps.gsi.go.jp/development/ichiran.html
 
-
+### Maplibre 版
+* MapLibre GL JS https://github.com/maplibre/maplibre-gl-js
+* 国土地理院最適化ベクトルタイル https://github.com/gsi-cyberjapan/optimal_bvmap
