@@ -30,4 +30,6 @@ Maplibre 版 https://mghs15.github.io/skhb-search/index-maplibre.html
 
 ### Maplibre 版
 * MapLibre GL JS https://github.com/maplibre/maplibre-gl-js
+  * https://maplibre.org/maplibre-gl-js-docs/example/cluster/
+  * https://maplibre.org/maplibre-gl-js-docs/example/heatmap-layer/
 * 国土地理院最適化ベクトルタイル https://github.com/gsi-cyberjapan/optimal_bvmap
