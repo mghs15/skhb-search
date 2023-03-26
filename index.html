@@ -137,9 +137,9 @@ const createRowComp = (array) => {
   
   row += `<div class='cell'>${array[13]}</div>`; // 指定避難所との重複
   
+  
   const lat = +array[14];
   const lng = +array[15];
-  
   
   const gsimapsUrl = `https://maps.gsi.go.jp/#16/${lat}/${lng}/&base=std&ls=std|skhb0${dnum}&disp=11&lcd=skhb0${dnum}&vs=c1g1j0h0k0l0u0t0z0r0s0m0f1&d=m`;
   const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
@@ -155,6 +155,7 @@ const createRowComp = (array) => {
   row += `<div class='map-link' title='Googleで検索'><a href='${googleSearchUrl}' target='_blank'>検索</a></div>`;
   row += "</div>"; // class='map-tools'
   
+  
   row += "</div>"; // class='table-row'
   
   if(array[16]) row += `<div class='table-row-note'>※備考：${array[16]}</div>`;
@@ -164,6 +165,7 @@ const createRowComp = (array) => {
 }
 
 const mapViewSet = (lat, lng, zoom) => {
+  if(!map) return;
   map.setView([lat, lng], zoom);
 }
 
