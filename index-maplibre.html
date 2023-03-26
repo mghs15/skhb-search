@@ -159,7 +159,11 @@ const createRowComp = (array) => {
 
 const mapViewSet = (lat, lng, zoom) => {
   if(!map) return;
-  map.easeTo({'center': [lng, lat], 'zoom':zoom});
+  map.resize();
+  if(lng && lat){
+    const zl = zoom || map.getZoom();
+    map.easeTo({'center': [lng, lat], 'zoom': zl});
+  }
 }
 
 const renderFromList = (list) => {
@@ -261,6 +265,7 @@ const searchFiles = () => {
     if(!map){
       alert("地図の情報が取得できません。地図範囲での絞り込みは行いません");
     }else{
+      map.resize();
       const b = map.getBounds();
       console.log(b);
       result = result.filter(f => (
@@ -624,7 +629,7 @@ button, div.button {
     </div>
     
     <div id="searchInputArea5" class="searchInputArea geomSearchCondition">
-      <input type="checkbox" id="onlyMap" name="onlyMap" >地図の範囲に絞る
+      <input type="checkbox" id="onlyMap" name="onlyMap" onChange="mapViewSet();">地図の範囲に絞る
     </div>
     
     <div class="infoSearchButtonArea">
@@ -655,14 +660,13 @@ button, div.button {
 
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono.json', 
+  hash: true,
+  style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono2.json', 
   center: [135, 35], // starting position [lng, lat]
-  "min-zoom": 6,
+  minZoom: 6,
   zoom: 9 // starting zoom
 });
 
-
-  
 const showOnMap = (result) => {
   
   const isShowClusterOnMap = document.getElementById("showClusterOnMap").checked;
@@ -714,6 +718,12 @@ const showOnMap = (result) => {
   if(map.getSource("overlay-cluster")) map.removeSource("overlay-cluster");
   if(map.getSource("overlay")) map.removeSource("overlay");
   
+  const overlayCirclePaint = {
+    "circle-color": "#11b4da",
+    "circle-radius": 4,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#FFFFFF"
+  };
   
   if(isShowHeatOnMap){
     
@@ -764,12 +774,7 @@ const showOnMap = (result) => {
         type: "circle",
         source: "overlay",
         "minzoom": 11,
-        paint: {
-          "circle-color": "#11b4da",
-          "circle-radius": 8,
-          "circle-stroke-width": 1,
-          "circle-stroke-color": "#FFFFFF"
-        }
+        paint: overlayCirclePaint
       });
     }
   }
@@ -790,7 +795,7 @@ const showOnMap = (result) => {
       filter: ["has", "point_count"],
       paint: {
         "circle-blur": 0.2,
-        "circle-opacity": 0.8,
+        "circle-opacity": isShowHeatOnMap ? 0 : 0.8,
         "circle-color": [
           "step",
           ["get", "point_count"],
@@ -832,16 +837,12 @@ const showOnMap = (result) => {
       type: "circle",
       source: "overlay-cluster",
       filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-color": "#11b4da",
-        "circle-radius": 4,
-        "circle-stroke-width": 1,
-        "circle-stroke-color": "#FFFFFF"
-      }
+      paint: overlayCirclePaint
     });
     
   }
   
+  setGeoJSON(geojson);
 }
 
 const createPopupComp = (array) => {
@@ -899,7 +900,7 @@ const openPopupFunc = (e) => {
 }
 
 
-setGeoJSON = (json) => {
+const setGeoJSON = (json) => {
   
   let res = JSON.stringify(json);
   const blob = new Blob([res], {type: 'application\/geo+json'});
