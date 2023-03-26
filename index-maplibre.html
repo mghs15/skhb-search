@@ -688,7 +688,7 @@ const showOnMap = (result) => {
         "type": "Feature",
         "geometry": {
           "type": "Point",
-          "coordinates": [c[15], c[14]]
+          "coordinates": [+c[15], +c[14]]
         },
         "properties": {
           "name": c[3],
@@ -899,10 +899,23 @@ const openPopupFunc = (e) => {
     
 }
 
+deleteRawData = (geojson) => {
+  const resGeojson = {
+    "type": "FeatureCollection",
+    "features": []
+  };
+  geojson.features.forEach( feature => {
+    const resFeature = feature;
+    delete resFeature.properties._rawdata;
+    resGeojson.features.push(resFeature);
+  });
+  return resGeojson;
+}
 
 const setGeoJSON = (json) => {
   
-  let res = JSON.stringify(json);
+  //let res = JSON.stringify(json);
+  let res = JSON.stringify(deleteRawData(json));
   const blob = new Blob([res], {type: 'application\/geo+json'});
   const url = URL.createObjectURL(blob);
   const a = document.getElementById('download-geojson');
@@ -910,6 +923,7 @@ const setGeoJSON = (json) => {
   a.download = "skhb.geojson";
   
 }
+
 
 </script>
 
