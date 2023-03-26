@@ -5,14 +5,8 @@
 <title>SKHB検索</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
-
-<script src="./lib/leaflet-heat.js"></script>
+<script src='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js'></script>
+<link href='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css' rel='stylesheet' />
 
 <script>
 
@@ -105,7 +99,7 @@ const createHeader = (array) => {
     if(c)  h += `<div class='cell'>${c}</div>`;
   });
   
-  h += `<div class='cell map-tools'>地図・検索</div>`;
+  h += `<div class='cell map-tools'>地図</div>`;
   
   h += "</div>";
   return h;
@@ -137,9 +131,9 @@ const createRowComp = (array) => {
   
   row += `<div class='cell'>${array[13]}</div>`; // 指定避難所との重複
   
-  
   const lat = +array[14];
   const lng = +array[15];
+  
   
   const gsimapsUrl = `https://maps.gsi.go.jp/#16/${lat}/${lng}/&base=std&ls=std|skhb0${dnum}&disp=11&lcd=skhb0${dnum}&vs=c1g1j0h0k0l0u0t0z0r0s0m0f1&d=m`;
   const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
@@ -150,11 +144,10 @@ const createRowComp = (array) => {
   row += "<div class='cell map-tools'>"
   row += `<div class='map-move' title='地図を移動'><a href="#map" onClick="mapViewSet(${lat}, ${lng}, 16);">移動</a></div> / `;
   row += `<div class='map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div> / `;
-  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> / `;
+  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> /`;
   row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGM</a></div> / `;
   row += `<div class='map-link' title='Googleで検索'><a href='${googleSearchUrl}' target='_blank'>検索</a></div>`;
   row += "</div>"; // class='map-tools'
-  
   
   row += "</div>"; // class='table-row'
   
@@ -165,9 +158,9 @@ const createRowComp = (array) => {
 }
 
 const mapViewSet = (lat, lng, zoom) => {
-  if(!map) return;
-  map.setView([lat, lng], zoom);
+  map.easeTo({'center': [lng, lat], 'zoom':zoom});
 }
+
 
 const renderFromList = (list) => {
   
@@ -271,10 +264,10 @@ const searchFiles = () => {
       const b = map.getBounds();
       console.log(b);
       result = result.filter(f => (
-        +f.split(",")[14] > b._southWest.lat &&
-        +f.split(",")[15] > b._southWest.lng &&
-        +f.split(",")[14] < b._northEast.lat &&
-        +f.split(",")[15] < b._northEast.lng
+        +f.split(",")[14] > b._sw.lat &&
+        +f.split(",")[15] > b._sw.lng &&
+        +f.split(",")[14] < b._ne.lat &&
+        +f.split(",")[15] < b._ne.lng
       ));
     }
   }
@@ -654,43 +647,27 @@ button, div.button {
 
 <div id="refelence">
   <a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html">指定緊急避難場所（国土地理院）</a> |
-  <a href="https://leafletjs.com/">Leaflet</a> |
-  <a href="https://github.com/Leaflet/Leaflet.markercluster">Leaflet.markercluster</a> |
-  <a href="https://github.com/Leaflet/Leaflet.heat">Leaflet.heat</a> |
+  <a href="https://github.com/maplibre/maplibre-gl-js">MapLibre GL JS</a> |
   <a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>
 </div>
 
 <script>
-const tiles = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-  maxZoom: 18,
-  attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>'
-})
 
-const latlng = L.latLng(35, 135);
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono.json', 
+  center: [135, 35], // starting position [lng, lat]
+  "min-zoom": 6,
+  zoom: 9 // starting zoom
+});
 
-const map = L.map('map', {center: latlng, zoom: 5, layers: [tiles]});
 
-
-
-let markers;
-let heat;
   
 const showOnMap = (result) => {
-  
-  if(markers)  map.removeLayer(markers);
-  if(markers)  map.removeLayer(heat);
-  let heatPoints = [];
-  
-  /*
-  const isShowOnMap = document.getElementById("showOnMap").checked;
-  if(!isShowOnMap) return;
-  */
   
   const isShowClusterOnMap = document.getElementById("showClusterOnMap").checked;
   const isShowHeatOnMap = document.getElementById("showHeatOnMap").checked;
   if(!isShowClusterOnMap && !isShowHeatOnMap) return;
-  
-  markers = L.markerClusterGroup();
   
   const geojson = {
     "type": "FeatureCollection",
@@ -727,33 +704,144 @@ const showOnMap = (result) => {
     }
     
   });
-
-  for (var i = 0; i < geojson.features.length; i++) {
-    const a = geojson.features[i];
-    const title = a.properties.name;
-    const marker = L.marker(new L.LatLng(a.geometry.coordinates[1], a.geometry.coordinates[0]), { title: title });
-    marker.bindPopup( createPopupComp(a.properties._rawdata.split(",")) );
-    markers.addLayer(marker);
-    
-    heatPoints.push([a.geometry.coordinates[1], a.geometry.coordinates[0], 1]);
-    
-    //再利用しないことを前提に属性値を削除
-    delete a.properties._rawdata;
-  }
+  
+  map.resize();
+  
+  if(map.getLayer("overlay-cluster")) map.removeLayer("overlay-cluster");
+  if(map.getLayer("overlay-cluster-count")) map.removeLayer("overlay-cluster-count");
+  if(map.getLayer("overlay"))  map.removeLayer("overlay");
+  if(map.getLayer("overlay-heat")) map.removeLayer("overlay-heat");
+  if(map.getSource("overlay-cluster")) map.removeSource("overlay-cluster");
+  if(map.getSource("overlay")) map.removeSource("overlay");
+  
   
   if(isShowHeatOnMap){
-    heat = L.heatLayer(heatPoints, {radius: 25})
-    heat.addTo(map);
+    
+    map.addSource("overlay", {
+      "type": "geojson",
+      "data": geojson,
+    });
+    
+    map.addLayer({
+      id: "overlay-heat",
+      type: "heatmap",
+      source: "overlay",
+      "maxzoom": 11,
+      paint: {
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0,
+          "rgba(33,102,172,0)",
+          0.2,
+          "rgb(103,169,207)",
+          0.4,
+          "rgb(209,229,240)",
+          0.6,
+          "rgb(253,219,199)",
+          0.8,
+          "rgb(239,138,98)",
+          1,
+          "rgb(178,24,43)"
+        ],
+        "heatmap-intensity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          6,
+          0.02,
+          9,
+          1
+        ],
+        "heatmap-opacity": 0.5
+      }
+    });
+    
+    if(!isShowClusterOnMap && !map.getLayer("overlay")){
+      map.addLayer({
+        id: "overlay",
+        type: "circle",
+        source: "overlay",
+        "minzoom": 11,
+        paint: {
+          "circle-color": "#11b4da",
+          "circle-radius": 8,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#FFFFFF"
+        }
+      });
+    }
   }
   
   if(isShowClusterOnMap){
-    map.addLayer(markers);
+  
+    map.addSource("overlay-cluster", {
+      "type": "geojson",
+      "data": geojson,
+      "cluster": true,
+      "clusterMaxZoom": 10
+    });
+    
+    map.addLayer({
+      id: "overlay-cluster",
+      type: "circle",
+      source: "overlay-cluster",
+      filter: ["has", "point_count"],
+      paint: {
+        "circle-blur": 0.2,
+        "circle-opacity": 0.8,
+        "circle-color": [
+          "step",
+          ["get", "point_count"],
+          "#51bbd6",
+          100,
+          "#f1f075",
+          750,
+          "#f28cb1"
+        ],
+        "circle-radius": [
+          "step",
+          ["get", "point_count"],
+          10,
+          100,
+          20,
+          750,
+          30
+        ]
+      }
+    });
+    map.addLayer({
+      id: "overlay-cluster-count",
+      type: "symbol",
+      source: "overlay-cluster",
+      filter: ["has", "point_count"],
+      layout: {
+        "text-field": ["get", "point_count_abbreviated"],
+        "text-font": ["NotoSansJP-Regular"],
+        "text-size": 12
+      },
+      paint: {
+        "text-halo-width": 1,
+        "text-halo-color": "#FFFFFF"
+      }
+    });
+    
+    map.addLayer({
+      id: "overlay",
+      type: "circle",
+      source: "overlay-cluster",
+      filter: ["!", ["has", "point_count"]],
+      paint: {
+        "circle-color": "#11b4da",
+        "circle-radius": 4,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#FFFFFF"
+      }
+    });
+    
   }
   
-  map.invalidateSize();
-  
-  setGeoJSON(geojson);
-
 }
 
 const createPopupComp = (array) => {
@@ -764,6 +852,50 @@ const createPopupComp = (array) => {
   res += "</div>";
   
   return res;
+}
+
+map.on('click', (e) => {
+  openPopupFunc(e);
+});
+
+const popup = new maplibregl.Popup({
+  closeOnClick: false,
+});
+
+
+const openPopupFunc = (e) => {
+
+  //初期化
+  popup.remove();
+  
+  //レンダリングされた地物を取得
+  const targetLayers = ["overlay"];
+  const sv = 5;
+  const bb = [
+    [e.point.x - sv, e.point.y - sv],
+    [e.point.x + sv, e.point.y + sv]
+  ];
+  const features = map.queryRenderedFeatures(bb, {layers: targetLayers});
+  
+  if(!features.length) {
+    return;
+  } 
+  
+  //ポップアップ表示処理
+  let htmlString = "";
+  features.forEach( feature => {
+    htmlString = htmlString + createPopupComp(feature.properties._rawdata.split(","));
+    console.log(feature.properties);
+  });
+  
+  if(!htmlString || htmlString == "") {
+    return;
+  }
+  
+  popup.setLngLat([ e.lngLat.lng, e.lngLat.lat ])
+    .setHTML(htmlString)
+    .addTo(map);
+    
 }
 
 
