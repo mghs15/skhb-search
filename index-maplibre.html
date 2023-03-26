@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>SKHB検索</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
+
+<script src="./lib/leaflet-heat.js"></script>
+
+<script>
+
+const v = (string) => {
+
+  if(!string) return "";
+
+  return string.replace(/&/g,"&amp;")
+    .replace(/"/g,"&quot;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/'/g, "&#39;");
+}
+
+const globalInfo = {
+  "text": "",
+  "list": [],
+  "tempList": [],
+  "index": {}
+}
+
+const addCard = () => {
+  console.log("add");
+  const selectedFile = document.getElementById('addCard').files[0];
+  console.log(selectedFile);
+  
+  const reader = new FileReader();
+  reader.onload = () => {
+    
+    if(!reader.result) return;
+    
+    globalInfo.text = reader.result;
+    globalInfo.list = globalInfo.text.split(/(\r\n|\n)/g);
+    
+    globalInfo.list = globalInfo.list.filter(f => f.match(/\S/));
+    
+    const parent = document.getElementById('wrap');
+    parent.innerHTML = "読み込み完了！（" + globalInfo.list.length + "件）";
+    
+    //メモリを食うっぽいので、最初は表示しない
+    //renderFromList(globalInfo.list);
+    
+  }
+  
+  reader.readAsText(selectedFile, 'shift-jis');
+}
+
+const headerInfo = [
+  "市町村コード",
+  "都道府県名及び市町村名",
+  "NO",
+  "施設・場所名",
+  "住所",
+  "洪水",
+  "崖崩れ、土石流及び地滑り",
+  "高潮",
+  "地震",
+  "津波",
+  "大規模な火事",
+  "内水氾濫",
+  "火山現象",
+  "指定避難所との重複",
+  "緯度",
+  "経度",
+  "備考"
+];
+
+const headerShortInfo = [
+  "コード",
+  "市町村名",
+  "NO",
+  "施設・場所名",
+  "住所",
+  "洪水",
+  "土石",
+  "高潮",
+  "地震",
+  "津波",
+  "火事",
+  "内水",
+  "火山",
+  "重複",
+];
+
+const createHeader = (array) => {
+  
+  let h = "<div class='table-row table-header'>";
+  
+  array.forEach( c => {
+    if(c)  h += `<div class='cell'>${c}</div>`;
+  });
+  
+  h += `<div class='cell map-tools'>地図・検索</div>`;
+  
+  h += "</div>";
+  return h;
+}
+
+
+const createRowComp = (array) => {
+  
+  array = array.map(c => v(c));
+  
+  let row = "<div class='table-row'>";
+  row += `<div class='cell'>${array[0]}</div>`; // 市町村コード
+  row += `<div class='cell'>${array[1]}</div>`; // 都道府県名及び市町村名
+  row += `<div class='cell'>${array[2]}</div>`; // NO
+  row += `<div class='cell'>${array[3]}</div>`; // 施設・場所名
+  row += `<div class='cell'>${array[4]}</div>`; // 住所
+  
+  let dnum = 0;
+  let sc = 5; // Start Column;
+  
+  for(let i = sc; i < sc + 8; i++){
+    if(array[i] && array[i] == "1"){
+      row += `<div class='cell'><div class='disasterType'>${headerShortInfo[i]}</div></div>`;
+      if(!dnum) dnum = i - sc + 1;
+    }else{
+      row += `<div class='cell'></div>`;
+    }
+  }
+  
+  row += `<div class='cell'>${array[13]}</div>`; // 指定避難所との重複
+  
+  
+  const lat = +array[14];
+  const lng = +array[15];
+  
+  const gsimapsUrl = `https://maps.gsi.go.jp/#16/${lat}/${lng}/&base=std&ls=std|skhb0${dnum}&disp=11&lcd=skhb0${dnum}&vs=c1g1j0h0k0l0u0t0z0r0s0m0f1&d=m`;
+  const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
+  const googlmapUrl = `https://www.google.co.jp/maps/@${lat},${lng},350m/data=!3m1!1e3?hl=ja`;
+  
+  const googleSearchUrl = `https://www.google.com/search?q=${array[3]}+${array[1]}`;
+  
+  row += "<div class='cell map-tools'>"
+  row += `<div class='map-move' title='地図を移動'><a href="#map" onClick="mapViewSet(${lat}, ${lng}, 16);">移動</a></div> / `;
+  row += `<div class='map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div> / `;
+  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> / `;
+  row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGM</a></div> / `;
+  row += `<div class='map-link' title='Googleで検索'><a href='${googleSearchUrl}' target='_blank'>検索</a></div>`;
+  row += "</div>"; // class='map-tools'
+  
+  
+  row += "</div>"; // class='table-row'
+  
+  if(array[16]) row += `<div class='table-row-note'>※備考：${array[16]}</div>`;
+  
+  return row;
+  
+}
+
+const mapViewSet = (lat, lng, zoom) => {
+  if(!map) return;
+  map.setView([lat, lng], zoom);
+}
+
+const renderFromList = (list) => {
+  
+  let result = JSON.parse(JSON.stringify(list));
+  
+  let res = "";
+  
+  if(result.length < 1) res += "結果はありません。";
+  
+  if(result.length > 1000){
+    const answer = window.confirm("結果は" + result.length + "件です。すべて表示しますか？");
+    if(!answer){
+      res += "一部（1000件/" + result.length + "件）のみ表示します。";
+      result.splice(1000);
+    }
+  }else{
+    res += "結果は" + result.length + "件です。";
+  }
+  
+  res += "<div class='table'>";
+  
+  res += createHeader(headerShortInfo);
+  
+  for(i in result){
+    const f = result[i];
+    
+    if(!f) continue;
+    
+    const c = f.split(",");
+    
+    const de = createRowComp(c);
+    
+    res += de;
+  }
+  
+  res += "</div>"; // class = 'table'
+  
+  const parent = document.getElementById('wrap');
+  parent.innerHTML = res;
+
+}
+
+const searchFiles = () => {
+  
+  
+  let result = JSON.parse(JSON.stringify(globalInfo.list));
+  
+  const p = document.getElementById("textSearchConditionsArea")
+  const qs = p.querySelectorAll(".searchInputArea");
+  
+  console.log(qs);
+  
+  qs.forEach( q => {
+    console.log(q);
+    console.log(q.querySelectorAll(".target"));
+  
+    const target = q.querySelectorAll("select.target")[0].value;
+    const words = q.querySelectorAll("input.searchWord")[0].value;
+    const inout = q.querySelectorAll("select.inout")[0].value;
+    console.log(target, words, inout);
+    
+    let num;
+    let searchWord = "";
+    let excludeWords = "";
+    
+    if(target && target != "all"){
+      num = + target;
+    }else{
+      num = null;
+    }
+    
+    if(inout == "out"){
+      excludeWords = words;
+    }else{
+      searchWord = words;
+    }
+    
+    result = searchList(result, num, searchWord, excludeWords);
+    
+  });
+  
+  const isDtypeOnly = document.getElementById("onlyDtype").checked;
+  if(isDtypeOnly){
+    let sc = 5;
+    if(document.getElementById("d01").checked) result = result.filter(f => (f.split(",")[sc+0] == "1"));
+    if(document.getElementById("d02").checked) result = result.filter(f => (f.split(",")[sc+1] == "1"));
+    if(document.getElementById("d03").checked) result = result.filter(f => (f.split(",")[sc+2] == "1"));
+    if(document.getElementById("d04").checked) result = result.filter(f => (f.split(",")[sc+3] == "1"));
+    if(document.getElementById("d05").checked) result = result.filter(f => (f.split(",")[sc+4] == "1"));
+    if(document.getElementById("d06").checked) result = result.filter(f => (f.split(",")[sc+5] == "1"));
+    if(document.getElementById("d07").checked) result = result.filter(f => (f.split(",")[sc+6] == "1"));
+    if(document.getElementById("d08").checked) result = result.filter(f => (f.split(",")[sc+7] == "1"));
+  }
+  
+  const isMapOnly = document.getElementById("onlyMap").checked;
+  
+  if(isMapOnly){
+    if(!map){
+      alert("地図の情報が取得できません。地図範囲での絞り込みは行いません");
+    }else{
+      const b = map.getBounds();
+      console.log(b);
+      result = result.filter(f => (
+        +f.split(",")[14] > b._southWest.lat &&
+        +f.split(",")[15] > b._southWest.lng &&
+        +f.split(",")[14] < b._northEast.lat &&
+        +f.split(",")[15] < b._northEast.lng
+      ));
+    }
+  }
+  
+  globalInfo.tempList = JSON.parse(JSON.stringify(result));
+  showOnMap(result);
+  setCsv(result);
+  renderFromList(result);
+  
+}
+
+const searchList = (list, num, searchWords, excludeWords) => {
+
+  let isTargetColumnOnly = false;
+  if(num && num > -1){
+    isTargetColumnOnly = true;
+  }
+  
+  let result = list.filter(f => f.match(/\S/));
+  
+  const word = searchWords;
+  const words = word.split(/(\s|　)/g);
+  
+  
+  words.forEach( w => {
+    if( !w || w == "　" || !w.match(/\S/)) return;
+    if(isTargetColumnOnly){
+      result = result.filter(f => f.split(",")[num].match(w));
+    }else{
+      result = result.filter(f => f.match(w));
+    }
+  });
+  
+  
+  const outword = excludeWords;
+  const outwords = outword.split(/(\s|　)/g);
+  
+  if(outwords && outwords.length > 0){
+    outwords.forEach( w => {
+      if( !w || w == "　" || !w.match(/\S/)) return;
+    if(isTargetColumnOnly){
+      result = result.filter(f => !f.split(",")[num].match(w));
+    }else{
+      result = result.filter(f => !f.match(w));
+    }
+    });
+  }
+  
+  console.log(words);
+  console.log(outwords);
+  
+  return result;
+  
+}
+
+setCsv = (result) => {
+  
+  let res = headerInfo.join(",") + "\r\n";
+  result.forEach( line => {
+    res += line + "\r\n";
+  });
+  const blob = new Blob([res], {type: 'text\/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById('download');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = "skhb.csv";
+  
+}
+
+
+const addInputArea = () => {
+  
+  const id = Math.random() + "-" + Date.now();
+  
+  const template = `
+      <select class="target">
+        <option value="all">全体</option>
+        <option value="0">コード</option>
+        <option value="1">市町村名</option>
+        <option value="2">NO</option>
+        <option value="3">施設・場所名</option>
+        <option value="4">住所</option>
+        <option value="5">洪水</option>
+        <option value="6">土石</option>
+        <option value="7">高潮</option>
+        <option value="8">地震</option>
+        <option value="9">津波</option>
+        <option value="10">火事</option>
+        <option value="11">内水</option>
+        <option value="12">火山</option>
+        <option value="13">重複</option>
+        <option value="14">緯度</option>
+        <option value="15">経度</option>
+        <option value="16">備考</option>
+      </select>
+      に<input type="text" class="searchWord" size="45">を
+      <select class="inout">
+        <option value="in">含む</option>
+        <option value="out">含まない</option>
+      </select>
+      <button id="searchButton" onClick="removeElement('${id}');">削除</button>`;
+  
+  const child = document.createElement('div');
+  child.id = id;
+  child.classList.add("searchInputArea");
+  child.classList.add("textSearchCondition");
+  child.innerHTML = template;
+  
+  const p = document.getElementById("textSearchConditionsArea");
+  p.appendChild(child);
+
+}
+
+const removeElement = (id) => {
+  const el = document.getElementById(id);
+  el.remove();
+}
+
+</script>
+
+<style>
+body{
+}
+
+
+#title {
+  background-color: #000066;
+  color: #FFFFFF;
+  border-radius: 4px;
+  margin: 8px;
+  padding: 4px;
+}
+ 
+#abstruct {
+  margin: 8px;
+  padding: 4px;
+}
+
+#note {
+  margin: 8px;
+  padding: 4px;
+  color: #FF0000;
+}
+
+#info {
+  margin: 8px;
+  background: linear-gradient(to right, #FFFFFF 49.8%, #BED2FF 49.8%, #BED2FF 50.2%, #FFFFFF 50.2%);
+  text-align: center;
+}
+
+.searchInputArea {
+  border-radius: 4px;
+  background-color: #F2F6FF;
+  border: solid 2px #BED2FF;
+  padding: 4px;
+  margin: 2px;
+}
+
+.infoSearchButtonArea {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 4px;
+  margin-top: 2px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #FFFFFF;
+  border: solid 2px #BED2FF;
+  text-align: center;
+}
+
+#wrap {
+  margin: 8px;
+  padding: 4px;
+}
+
+
+#wrap .table {
+  display: grid;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px 150px;
+}
+
+.table-header {
+}
+
+.table-row-note {
+  display: grid;
+  padding-left: 2em;
+}
+
+.cell {
+  display: inline-block;
+  padding: 2px;
+  border: solid 1px #BED2FF;
+}
+
+.disasterType {
+  display: inline-block;
+  font-size: 0.8em;
+  border-radius: 0.2em;
+  background-color: #EEEEEE;
+  text-align: center;
+}
+
+.map-tools div {
+  display: inline-block;
+}
+
+.map-link {
+  text-align: center
+}
+
+.map-move {
+  cursor: pointer;
+}
+
+#info div {
+}
+
+.addInputAreaButtonArea {
+  text-align: center;
+}
+
+button, div.button {
+  cursor: pointer;
+  font-size: 0.8em;
+  display: inline-block;
+  padding: 1px 6px 1px 6px;
+  border-radius: 0.2em;
+  border: solid 1px #AAAAAA;
+  text-align: center;
+  background-color: #F0F0F0;
+}
+
+.button a {
+  color: #AAAAAA;
+}
+
+.button a:link {
+  color: #000000;
+  text-decoration: none;
+}
+
+#map {
+  height: 300px; 
+  border: 1px solid #CCCCCC;
+  margin: 8px;
+  padding: 4px;
+  resize: vertical;
+}
+
+#refelence {
+  background-color: #EEEEEE;
+  text-align: center
+}
+
+.popup-content .table-row {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media print {
+  #title, #abstruct, #note, #infoAddCardButton,
+  .addInputAreaButtonArea, .infoSearchButtonArea,
+  .map-tools {
+    display: none;
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 60px 120px 50px minmax(150px, 1fr) minmax(150px, 1fr) 20px 20px 20px 20px 20px 20px 20px 20px 20px;
+  }
+}
+
+
+</style>
+
+</head>
+<body>
+
+<div id="overlayLargeImageSpace"></div>
+<div id="overlayLock"></div>
+<div id="page">
+  <div id="title">
+  指定緊急避難場所　簡易検索サイト（個人サイト）
+  </div>
+  <div id="abstruct">
+  国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
+  2023年3月19日時点のデータを前提に作成しています。
+  <br>
+  本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
+  </div>
+  <div id="note">
+  ※試験中です。誤った結果が出力されることもありますので、ご注意ください。
+  </div>
+  <div id="info">
+    
+    <div id="infoAddCardButton" class="searchInputArea">
+      CSVデータ：
+      <input type="file" id="addCard" onChange="addCard();">
+      ※お手持ちのCSVデータを取り込んでください。
+    </div>
+    
+    <hr>
+    
+    <div id="textSearchConditionsArea">
+      <div id="defaultTextSearchCond" class="searchInputArea textSearchCondition">
+        <select class="target">
+          <option value="all">全体</option>
+          <option value="0">コード</option>
+          <option value="1">市町村名</option>
+          <option value="2">NO</option>
+          <option value="3">施設・場所名</option>
+          <option value="4">住所</option>
+          <option value="5">洪水</option>
+          <option value="6">土石</option>
+          <option value="7">高潮</option>
+          <option value="8">地震</option>
+          <option value="9">津波</option>
+          <option value="10">火事</option>
+          <option value="11">内水</option>
+          <option value="12">火山</option>
+          <option value="13">重複</option>
+          <option value="14">緯度</option>
+          <option value="15">経度</option>
+          <option value="16">備考</option>
+        </select>
+        に<input type="text" class="searchWord" size="45">を
+        <select class="inout">
+          <option value="in">含む</option>
+          <option value="out">含まない</option>
+        </select>
+        <button id="searchButton" onClick="removeElement('defaultTextSearchCond');">削除</button>
+      </div>
+    </div>
+    
+    <div class="addInputAreaButtonArea">
+      <button id="searchButton" onClick="addInputArea();">＋</button>
+    </div>
+    
+    <div id="searchInputArea4" class="searchInputArea dtypeSearchCondition">
+      <input type="checkbox" id="onlyDtype" name="onlyDtype" checked="checked" >種別で絞る
+      　→　
+      <input type="checkbox" id="d01" name="d01" >洪水
+      <input type="checkbox" id="d02" name="d02" >土砂
+      <input type="checkbox" id="d03" name="d03" >高潮
+      <input type="checkbox" id="d04" name="d04" >地震
+      <input type="checkbox" id="d05" name="d05" >津波
+      <input type="checkbox" id="d06" name="d06" >火事
+      <input type="checkbox" id="d07" name="d07" >内水
+      <input type="checkbox" id="d08" name="d08" >火山
+    </div>
+    
+    <div id="searchInputArea5" class="searchInputArea geomSearchCondition">
+      <input type="checkbox" id="onlyMap" name="onlyMap" >地図の範囲に絞る
+    </div>
+    
+    <div class="infoSearchButtonArea">
+      <button id="searchButton" onClick="searchFiles();">絞り込み</button>
+      <div class="button"><a id="download" target="_blank">CSV出力</a></div>
+      <input type="checkbox" id="showClusterOnMap" name="showClusterOnMap" checked="checked" >クラスター
+      <input type="checkbox" id="showHeatOnMap" name="showHeatOnMap" checked="checked" >ヒートマップ
+      <div class="button"><a id="download-geojson" target="_blank">GeoJSON出力</a></div>
+    </div>
+    
+  </div>
+  
+  
+  <div id="map"></div>
+  
+  
+  <div id="wrap">
+  </div>
+</div>
+
+<div id="refelence">
+  <a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html">指定緊急避難場所（国土地理院）</a> |
+  <a href="https://leafletjs.com/">Leaflet</a> |
+  <a href="https://github.com/Leaflet/Leaflet.markercluster">Leaflet.markercluster</a> |
+  <a href="https://github.com/Leaflet/Leaflet.heat">Leaflet.heat</a> |
+  <a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>
+</div>
+
+<script>
+const tiles = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>'
+})
+
+const latlng = L.latLng(35, 135);
+
+const map = L.map('map', {center: latlng, zoom: 5, layers: [tiles]});
+
+
+
+let markers;
+let heat;
+  
+const showOnMap = (result) => {
+  
+  if(markers)  map.removeLayer(markers);
+  if(markers)  map.removeLayer(heat);
+  let heatPoints = [];
+  
+  /*
+  const isShowOnMap = document.getElementById("showOnMap").checked;
+  if(!isShowOnMap) return;
+  */
+  
+  const isShowClusterOnMap = document.getElementById("showClusterOnMap").checked;
+  const isShowHeatOnMap = document.getElementById("showHeatOnMap").checked;
+  if(!isShowClusterOnMap && !isShowHeatOnMap) return;
+  
+  markers = L.markerClusterGroup();
+  
+  const geojson = {
+    "type": "FeatureCollection",
+    "features": []
+  };
+  
+  result.forEach( line => {
+    const c = line.split(",");
+    
+    let sc = 5;
+    
+    if(c && c[14] &&  c[15]){
+      geojson.features.push({
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [c[15], c[14]]
+        },
+        "properties": {
+          "name": c[3],
+          "都道府県名及び市町村名": c[1],
+          "洪水": c[sc+0],
+          "崖崩れ、土石流及び地滑り": c[sc+1],
+          "高潮": c[sc+2],
+          "地震": c[sc+3],
+          "津波": c[sc+4],
+          "大規模な火事": c[sc+5],
+          "内水氾濫": c[sc+6],
+          "火山現象": c[sc+7],
+          "指定避難所との重複": c[13],
+          "_rawdata": line
+        }
+      })
+    }
+    
+  });
+
+  for (var i = 0; i < geojson.features.length; i++) {
+    const a = geojson.features[i];
+    const title = a.properties.name;
+    const marker = L.marker(new L.LatLng(a.geometry.coordinates[1], a.geometry.coordinates[0]), { title: title });
+    marker.bindPopup( createPopupComp(a.properties._rawdata.split(",")) );
+    markers.addLayer(marker);
+    
+    heatPoints.push([a.geometry.coordinates[1], a.geometry.coordinates[0], 1]);
+    
+    //再利用しないことを前提に属性値を削除
+    delete a.properties._rawdata;
+  }
+  
+  if(isShowHeatOnMap){
+    heat = L.heatLayer(heatPoints, {radius: 25})
+    heat.addTo(map);
+  }
+  
+  if(isShowClusterOnMap){
+    map.addLayer(markers);
+  }
+  
+  map.invalidateSize();
+  
+  setGeoJSON(geojson);
+
+}
+
+const createPopupComp = (array) => {
+  let res = "<div class='popup-content'>";
+  
+  res += createRowComp(array);
+  
+  res += "</div>";
+  
+  return res;
+}
+
+
+setGeoJSON = (json) => {
+  
+  let res = JSON.stringify(json);
+  const blob = new Blob([res], {type: 'application\/geo+json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById('download-geojson');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = "skhb.geojson";
+  
+}
+
+</script>
+
+</body>
+</html>
+
+
