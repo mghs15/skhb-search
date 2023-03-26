@@ -99,7 +99,7 @@ const createHeader = (array) => {
     if(c)  h += `<div class='cell'>${c}</div>`;
   });
   
-  h += `<div class='cell map-tools'>地図</div>`;
+  h += `<div class='cell map-tools'>地図・検索</div>`;
   
   h += "</div>";
   return h;
@@ -144,7 +144,7 @@ const createRowComp = (array) => {
   row += "<div class='cell map-tools'>"
   row += `<div class='map-move' title='地図を移動'><a href="#map" onClick="mapViewSet(${lat}, ${lng}, 16);">移動</a></div> / `;
   row += `<div class='map-link' title='地理院地図'><a href='${gsimapsUrl}' target='_blank'>GSI</a></div> / `;
-  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> /`;
+  row += `<div class='map-link' title='重ねるハザードマップ'><a href='${disaportalUrl}' target='_blank'>HZM</a></div> / `;
   row += `<div class='map-link' title='GoogleMap'><a href='${googlmapUrl}' target='_blank'>GGM</a></div> / `;
   row += `<div class='map-link' title='Googleで検索'><a href='${googleSearchUrl}' target='_blank'>検索</a></div>`;
   row += "</div>"; // class='map-tools'
@@ -158,9 +158,9 @@ const createRowComp = (array) => {
 }
 
 const mapViewSet = (lat, lng, zoom) => {
+  if(!map) return;
   map.easeTo({'center': [lng, lat], 'zoom':zoom});
 }
-
 
 const renderFromList = (list) => {
   
