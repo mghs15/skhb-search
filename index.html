@@ -49,6 +49,9 @@ const addCard = () => {
     
     globalInfo.list = globalInfo.list.filter(f => f.match(/\S/));
     
+    // ヘッダを除く(最初の列は市町村コードであることを利用)
+    globalInfo.list = globalInfo.list.filter(f => f.match(/^\d/)); 
+    
     const parent = document.getElementById('wrap');
     parent.innerHTML = "読み込み完了！（" + globalInfo.list.length + "件）";
     
@@ -393,6 +396,10 @@ const removeElement = (id) => {
   el.remove();
 }
 
+window.onload = () => {
+  addInputArea();
+}
+
 </script>
 
 <style>
@@ -565,12 +572,12 @@ button, div.button {
   </div>
   <div id="abstruct">
   国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
-  2023年3月19日時点のデータを前提に作成しています。
+  2023年6月29日時点のデータを前提に作成しています。
   <br>
   本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
   </div>
   <div id="note">
-  ※試験中です。誤った結果が出力されることもありますので、ご注意ください。
+  ※試験中です。誤った結果が出力されることがあるかもしれませんので、ご注意ください。
   </div>
   <div id="info">
     
@@ -583,34 +590,7 @@ button, div.button {
     <hr>
     
     <div id="textSearchConditionsArea">
-      <div id="defaultTextSearchCond" class="searchInputArea textSearchCondition">
-        <select class="target">
-          <option value="all">全体</option>
-          <option value="0">コード</option>
-          <option value="1">市町村名</option>
-          <option value="2">NO</option>
-          <option value="3">施設・場所名</option>
-          <option value="4">住所</option>
-          <option value="5">洪水</option>
-          <option value="6">土石</option>
-          <option value="7">高潮</option>
-          <option value="8">地震</option>
-          <option value="9">津波</option>
-          <option value="10">火事</option>
-          <option value="11">内水</option>
-          <option value="12">火山</option>
-          <option value="13">重複</option>
-          <option value="14">緯度</option>
-          <option value="15">経度</option>
-          <option value="16">備考</option>
-        </select>
-        に<input type="text" class="searchWord" size="45">を
-        <select class="inout">
-          <option value="in">含む</option>
-          <option value="out">含まない</option>
-        </select>
-        <button id="searchButton" onClick="removeElement('defaultTextSearchCond');">削除</button>
-      </div>
+
     </div>
     
     <div class="addInputAreaButtonArea">
