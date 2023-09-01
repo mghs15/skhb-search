@@ -7,6 +7,7 @@
 
 <script src='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js'></script>
 <link href='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css' rel='stylesheet' />
+<script src="https://unpkg.com/pmtiles@2.5.0/dist/index.js"></script>
 
 <script>
 
@@ -637,6 +638,8 @@ button, div.button {
 </div>
 
 <script>
+let protocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
 
 const map = new maplibregl.Map({
   container: 'map',
