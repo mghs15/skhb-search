@@ -768,7 +768,18 @@ const showOnMap = (result) => {
       "type": "geojson",
       "data": geojson,
       "cluster": true,
-      "clusterMaxZoom": 10
+      "clusterMaxZoom": 10,
+      "clusterProperties": {
+        "合計-洪水": ["+", ["to-number",["get", "洪水"]]],
+        "合計-崖崩れ、土石流及び地滑り": ["+", ["to-number",["get", "崖崩れ、土石流及び地滑り"]]],
+        "合計-高潮": ["+", ["to-number",["get", "高潮"]]],
+        "合計-地震": ["+", ["to-number",["get", "地震"]]],
+        "合計-津波": ["+", ["to-number",["get", "津波"]]],
+        "合計-大規模な火事": ["+", ["to-number",["get", "大規模な火事"]]],
+        "合計-内水氾濫": ["+", ["to-number",["get", "内水氾濫"]]],
+        "合計-火山現象": ["+", ["to-number",["get", "火山現象"]]],
+        "合計-指定避難所との重複": ["+", ["to-number",["get", "指定避難所との重複"]]]
+      }
     });
     
     map.addLayer({
@@ -780,8 +791,9 @@ const showOnMap = (result) => {
         "circle-blur": 0.2,
         "circle-opacity": isShowHeatOnMap ? 0 : 0.8,
         "circle-color": [
-          "step",
+          "interpolate", ["linear"],
           ["get", "point_count"],
+          1,
           "#51bbd6",
           100,
           "#f1f075",
@@ -789,8 +801,9 @@ const showOnMap = (result) => {
           "#f28cb1"
         ],
         "circle-radius": [
-          "step",
+          "interpolate", ["linear"],
           ["get", "point_count"],
+          1,
           10,
           100,
           20,
@@ -853,7 +866,7 @@ const openPopupFunc = (e) => {
   popup.remove();
   
   //レンダリングされた地物を取得
-  const targetLayers = ["overlay"];
+  const targetLayers = ["overlay", "overlay-cluster"];
   const sv = 5;
   const bb = [
     [e.point.x - sv, e.point.y - sv],
@@ -868,8 +881,17 @@ const openPopupFunc = (e) => {
   //ポップアップ表示処理
   let htmlString = "";
   features.forEach( feature => {
-    htmlString = htmlString + createPopupComp(feature.properties._rawdata.split(","));
     console.log(feature.properties);
+
+    if(!feature.properties._rawdata){
+      htmlString += "<div class='popup-content'>";
+      for(name in feature.properties){
+        htmlString += `<div><span>${name}</span>：<span>${feature.properties[name]}</span></div>`
+      }
+      htmlString += "</div>";
+    }else{
+      htmlString = htmlString + createPopupComp(feature.properties._rawdata.split(","));
+    }
   });
   
   if(!htmlString || htmlString == "") {
@@ -912,5 +934,4 @@ const setGeoJSON = (json) => {
 
 </body>
 </html>
-
 
