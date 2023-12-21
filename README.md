@@ -21,6 +21,7 @@
 
 ## Reference
 * 指定緊急避難場所（国土地理院）https://www.gsi.go.jp/bousaichiri/hinanbasho.html
+ * サンプルデータは 2023/12/13 公開のものをホストしています。
 
 ### Leaflet 版
 * Leaflet https://leafletjs.com/
