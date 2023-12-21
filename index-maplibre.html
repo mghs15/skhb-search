@@ -58,6 +58,32 @@ const addCard = () => {
   reader.readAsText(selectedFile, 'shift-jis');
 }
 
+const addSample = () => {
+  console.log("add sample");
+  
+  let data;
+  
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', "./sample/gsi-skhb-20231213.csv", false);
+  xhr.send(null);
+  
+  if(xhr.status == 200 || xhr.status == 304){
+    data = xhr.responseText;
+    alert("国土地理院 2023/12/13 公開のデータです。実際に使用する際は最新版をダウンロードしてご利用ください。")
+  }
+  
+  globalInfo.text = data;
+  globalInfo.list = globalInfo.text.split(/(\r\n|\n)/g);
+  
+  globalInfo.list = globalInfo.list.filter(f => f.match(/\S/));
+  
+  // ヘッダを除く(最初の列は市町村コードであることを利用)
+  globalInfo.list = globalInfo.list.filter(f => f.match(/^\d/)); 
+  
+  const parent = document.getElementById('wrap');
+  parent.innerHTML = "読み込み完了！（" + globalInfo.list.length + "件）";
+}
+
 const headerInfo = [
   "市町村コード",
   "都道府県名及び市町村名",
@@ -583,7 +609,7 @@ button, div.button {
     <div id="infoAddCardButton" class="searchInputArea">
       CSVデータ：
       <input type="file" id="addCard" onChange="addCard();">
-      ※お手持ちのCSVデータを取り込んでください。
+      ※お手持ちのCSVデータを取り込んでください。<button id="searchButton" onClick="addSample();">サンプルデータ</button>
     </div>
     
     <hr>
