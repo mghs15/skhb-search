@@ -207,8 +207,10 @@ const renderFromList = (list) => {
   if(result.length > 1000){
     const answer = window.confirm("結果は" + result.length + "件です。すべて表示しますか？");
     if(!answer){
-      res += "一部（1000件/" + result.length + "件）のみ表示します。";
+      res += "結果は" + result.length + "件です。<br>一部（1000件）のみ表示します。";
       result.splice(1000);
+    }else{
+      res += "結果は" + result.length + "件です。";
     }
   }else{
     res += "結果は" + result.length + "件です。";
@@ -466,12 +468,15 @@ body{
 }
 
 .infoSearchButtonArea {
-  display: inline-block;
   border-radius: 4px;
   padding: 4px;
+  margin: 2px;
+  /*
+  display: inline-block;
   margin-top: 2px;
   margin-left: auto;
   margin-right: auto;
+  */
   background-color: #FFFFFF;
   border: solid 2px #BED2FF;
   text-align: center;
@@ -639,12 +644,24 @@ button, div.button {
       <input type="checkbox" id="onlyMap" name="onlyMap" onChange="mapViewSet();">地図の範囲に絞る
     </div>
     
+    <hr>
+    
     <div class="infoSearchButtonArea">
       <button id="searchButton" onClick="searchFiles();">絞り込み</button>
       <div class="button"><a id="download" target="_blank">CSV出力</a></div>
+      <div class="button"><a id="download-geojson" target="_blank">GeoJSON出力</a></div>
       <input type="checkbox" id="showClusterOnMap" name="showClusterOnMap" checked="checked" >クラスター
       <input type="checkbox" id="showHeatOnMap" name="showHeatOnMap" checked="checked" >ヒートマップ
-      <div class="button"><a id="download-geojson" target="_blank">GeoJSON出力</a></div>
+      <select id="hazard" onchange="switchHazard();">
+        <option value="none">（ハザードマップ）</option>
+        <option value="flood">洪水（想定最大）</option>
+        <option value="flood-duration">洪水の浸水継続時間（想定最大）</option>
+        <option value="takashio">高潮</option>
+        <option value="tsunami">津波</option>
+        <option value="dosekiryukeikaikuiki">土砂災害警戒区域（土石流）</option>
+        <option value="kyukeishakeikaikuiki">土砂災害警戒区域（急傾斜地の崩壊）</option>
+        <option value="jisuberikeikaikuiki">土砂災害警戒区域（地すべり）</option>
+      </select>
     </div>
     
   </div>
@@ -676,11 +693,21 @@ const map = new maplibregl.Map({
   zoom: 9 // starting zoom
 });
 
+map.on('load', () => {
+  map.addLayer({
+    id: "overlay-background",
+    type: "background",
+    layout: {
+      "visibility": "none"
+    }
+  });
+});
+
 const showOnMap = (result) => {
   
   const isShowClusterOnMap = document.getElementById("showClusterOnMap").checked;
   const isShowHeatOnMap = document.getElementById("showHeatOnMap").checked;
-  if(!isShowClusterOnMap && !isShowHeatOnMap) return;
+  //if(!isShowClusterOnMap && !isShowHeatOnMap) return;
   
   const geojson = {
     "type": "FeatureCollection",
@@ -724,6 +751,7 @@ const showOnMap = (result) => {
   if(map.getLayer("overlay-cluster-count")) map.removeLayer("overlay-cluster-count");
   if(map.getLayer("overlay"))  map.removeLayer("overlay");
   if(map.getLayer("overlay-heat")) map.removeLayer("overlay-heat");
+  
   if(map.getSource("overlay-cluster")) map.removeSource("overlay-cluster");
   if(map.getSource("overlay")) map.removeSource("overlay");
   
@@ -788,72 +816,73 @@ const showOnMap = (result) => {
     }
   }
   
-  if(isShowClusterOnMap){
   
-    map.addSource("overlay-cluster", {
-      "type": "geojson",
-      "data": geojson,
-      "cluster": true,
-      "clusterMaxZoom": 10,
-      "clusterProperties": {
-        "合計-洪水": ["+", ["to-number",["get", "洪水"]]],
-        "合計-崖崩れ、土石流及び地滑り": ["+", ["to-number",["get", "崖崩れ、土石流及び地滑り"]]],
-        "合計-高潮": ["+", ["to-number",["get", "高潮"]]],
-        "合計-地震": ["+", ["to-number",["get", "地震"]]],
-        "合計-津波": ["+", ["to-number",["get", "津波"]]],
-        "合計-大規模な火事": ["+", ["to-number",["get", "大規模な火事"]]],
-        "合計-内水氾濫": ["+", ["to-number",["get", "内水氾濫"]]],
-        "合計-火山現象": ["+", ["to-number",["get", "火山現象"]]],
-        "合計-指定避難所との重複": ["+", ["to-number",["get", "指定避難所との重複"]]]
-      }
-    });
-    
-    map.addLayer({
-      id: "overlay-cluster",
-      type: "circle",
-      source: "overlay-cluster",
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-blur": 0.2,
-        "circle-opacity": isShowHeatOnMap ? 0 : 0.8,
-        "circle-color": [
-          "interpolate", ["linear"],
-          ["get", "point_count"],
-          1,
-          "#51bbd6",
-          100,
-          "#f1f075",
-          750,
-          "#f28cb1"
-        ],
-        "circle-radius": [
-          "interpolate", ["linear"],
-          ["get", "point_count"],
-          1,
-          10,
-          100,
-          20,
-          750,
-          30
-        ]
-      }
-    });
-    map.addLayer({
-      id: "overlay-cluster-count",
-      type: "symbol",
-      source: "overlay-cluster",
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-font": ["NotoSansJP-Regular"],
-        "text-size": 12
-      },
-      paint: {
-        "text-halo-width": 1,
-        "text-halo-color": "#FFFFFF"
-      }
-    });
-    
+  // クラスタリング関係
+  map.addSource("overlay-cluster", {
+    "type": "geojson",
+    "data": geojson,
+    "cluster": isShowClusterOnMap,
+    "clusterMaxZoom": 10,
+    "clusterProperties": {
+      "合計-洪水": ["+", ["to-number",["get", "洪水"]]],
+      "合計-崖崩れ、土石流及び地滑り": ["+", ["to-number",["get", "崖崩れ、土石流及び地滑り"]]],
+      "合計-高潮": ["+", ["to-number",["get", "高潮"]]],
+      "合計-地震": ["+", ["to-number",["get", "地震"]]],
+      "合計-津波": ["+", ["to-number",["get", "津波"]]],
+      "合計-大規模な火事": ["+", ["to-number",["get", "大規模な火事"]]],
+      "合計-内水氾濫": ["+", ["to-number",["get", "内水氾濫"]]],
+      "合計-火山現象": ["+", ["to-number",["get", "火山現象"]]],
+      "合計-指定避難所との重複": ["+", ["to-number",["get", "指定避難所との重複"]]]
+    }
+  });
+  
+  map.addLayer({
+    id: "overlay-cluster",
+    type: "circle",
+    source: "overlay-cluster",
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-blur": 0.2,
+      "circle-opacity": isShowHeatOnMap ? 0 : 0.8,
+      "circle-color": [
+        "interpolate", ["linear"],
+        ["get", "point_count"],
+        1,
+        "#51bbd6",
+        100,
+        "#f1f075",
+        750,
+        "#f28cb1"
+      ],
+      "circle-radius": [
+        "interpolate", ["linear"],
+        ["get", "point_count"],
+        1,
+        10,
+        100,
+        20,
+        750,
+        30
+      ]
+    }
+  });
+  map.addLayer({
+    id: "overlay-cluster-count",
+    type: "symbol",
+    source: "overlay-cluster",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-font": ["NotoSansJP-Regular"],
+      "text-size": 12
+    },
+    paint: {
+      "text-halo-width": 1,
+      "text-halo-color": "#FFFFFF"
+    }
+  });
+  
+  if(!map.getLayer("overlay")){
     map.addLayer({
       id: "overlay",
       type: "circle",
@@ -861,8 +890,8 @@ const showOnMap = (result) => {
       filter: ["!", ["has", "point_count"]],
       paint: overlayCirclePaint
     });
-    
   }
+
   
   setGeoJSON(geojson);
 }
@@ -956,8 +985,68 @@ const setGeoJSON = (json) => {
 }
 
 
+
+const dataSet = {
+  "flood":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmapportal/hazardmap/copyright/img/shinsui_legend2-1.png"
+  },
+  "flood-duration":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmapportal/hazardmap/copyright/img/shinsui_legend_l2_keizoku.png"
+  },
+  "takashio":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmapportal/hazardmap/copyright/img/tsunami_newlegend.png"
+  },
+  "tsunami":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmapportal/hazardmap/copyright/img/tsunami_newlegend.png"
+  },
+  "dosekiryukeikaikuiki":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmap/copyright/img/dosha_keikai.png"
+  },
+  "kyukeishakeikaikuiki":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmap/copyright/img/dosha_keikai.png"
+  },
+  "jisuberikeikaikuiki":{
+    "hazardmap": "https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png",
+    "legend": "https://disaportal.gsi.go.jp/hazardmap/copyright/img/dosha_keikai.png"
+  }
+}
+
+
+const switchHazard = () => {
+  
+  const hazard = document.querySelectorAll("select#hazard")[0].value;
+
+  if(map.getLayer("hazardmap")) map.removeLayer("hazardmap");
+  if(map.getSource("hazardmap")) map.removeSource("hazardmap");
+    
+  if(dataSet[hazard] && dataSet[hazard].hazardmap){
+    map.addSource("hazardmap", {
+      "type": "raster",
+      "minzoom":2,
+      "maxzoom":17,
+      "tiles":[dataSet[hazard].hazardmap],
+      "tileSize": 256,
+      "attribution":"<a href='https://disaportal.gsi.go.jp/hazardmapportal/hazardmap/copyright/opendata.html' target='_blank'>重ねるハザードマップ</a>"
+    });
+    map.addLayer({ 
+      "id":"hazardmap",
+      "type":"raster",
+      "source":"hazardmap",
+      "paint":{
+        "raster-opacity": 0.7
+      }
+    }, "overlay-background");
+  }
+}
+
+
 </script>
 
 </body>
 </html>
-
