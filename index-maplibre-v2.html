@@ -378,7 +378,9 @@ const searchFiles = () => {
 }
 
 const searchList = (list, num, searchWords, excludeWords) => {
-
+  
+  //console.log(list);
+  
   let isTargetColumnOnly = false;
   if(num && num > -1){
     isTargetColumnOnly = true;
@@ -389,11 +391,16 @@ const searchList = (list, num, searchWords, excludeWords) => {
   const word = searchWords;
   const words = word.split(/(\s|　)/g);
   
+  console.log(num);
   
   words.forEach( w => {
     if( !w || w == "　" || !w.match(/\S/)) return;
     if(isTargetColumnOnly){
-      result = result.filter(f => f.split(",")[num].match(w));
+      result = result.filter(f => {
+        //console.log(f);
+        const _cols = f.split(",");
+        return _cols.length > num && _cols[num].match(w);
+      });
     }else{
       result = result.filter(f => f.match(w));
     }
@@ -448,6 +455,7 @@ const addInputArea = () => {
         <option value="2">市町村名</option>
         <option value="3">施設・場所名</option>
         <option value="4">住所</option>
+        <!--
         <option value="5">洪水</option>
         <option value="6">土石</option>
         <option value="7">高潮</option>
@@ -460,6 +468,7 @@ const addInputArea = () => {
         <option value="14">緯度</option>
         <option value="15">経度</option>
         <option value="16">備考</option>
+        -->
       </select>
       に<input type="text" class="searchWord" size="45">を
       <select class="inout">
@@ -661,6 +670,26 @@ button, div.button {
   }
 }
 
+.warn {
+  margin: 4px 8px 4px 32px;
+  padding: 2px;
+  background-color: #FFFFEE;
+  border: solid 2px #FFDD00;
+  border-radius: 4px;
+}
+
+.warn::before {
+  display: inline-block;
+  text-align: center;
+  vertical-align: baseline;
+  content: "!";
+  width: 1em;
+  color: #FFFFFF;
+  font-weight: bold;
+  background-color: #AA5500;
+  border: solid 2px #FFDD00;
+  border-radius: 4px;
+}
 
 </style>
 
@@ -676,11 +705,12 @@ button, div.button {
   <div id="abstruct">
   国土地理院が提供している<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">指定緊急避難場所及び指定避難所のCSVデータ</a>を取り込んで、中身を簡易的に検索をするサイトです。
   2024年12月23日時点のデータを前提に作成しています。
-  <br>
+  </div>
+  <div class="warn">
   本サイトは個人サイトです。国土地理院その他の組織とは関係ございません。
   </div>
-  <div id="note">
-  ※試験中です。誤った結果が出力されることがあるかもしれませんので、ご注意ください。
+  <div class="warn">
+  試験中です。誤った結果が出力されることがあるかもしれませんので、ご注意ください。
   </div>
   <div id="info">
     
