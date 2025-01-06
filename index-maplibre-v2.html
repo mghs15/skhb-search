@@ -172,6 +172,10 @@ const createRowComp = (array) => {
   const isSkhb = getShyubetsu(array[1]).match("避難場所") ? true : false;
   const rowClass = isSkhb ? "skhb" : "hinan";
   
+  //debug
+  if(isSkhb && array.length > 17) console.log(array);
+  if(!isSkhb && array.length > 11) console.log(array);
+  
   let row = `<div class='table-row ${rowClass}'>`;
   row += `<div class='cell'>${array[0]}</div>`; // NO
   row += `<div class='cell'><code class="small">${array[1]}<br>${shibetsu}</code></div>`; // 共通ID
@@ -197,7 +201,7 @@ const createRowComp = (array) => {
     
     row += `<div class='cell'>${array[13]}</div>`; // 指定避難所との重複
     
-    if(array[16]) bikou = "備考：" + array[16];
+    if(array[16]) bikou = " ※備考：" + array[16];
   
   }else{
   
@@ -209,9 +213,9 @@ const createRowComp = (array) => {
     
     row += `<div class='cell'>${array[5]}</div>`; // 指定緊急避難場所との重複
     
-    if(array[6]) bikou += " その他市町村長が必要と認める事項：" + array[6];
-    if(array[7]) bikou += " 受入対象者：" + array[7];
-    if(array[10]) bikou += "備考：" + array[6];
+    if(array[6]) bikou += " ※その他市町村長が必要と認める事項：" + array[6];
+    if(array[7]) bikou += " ※受入対象者：" + array[7];
+    if(array[10]) bikou += " ※備考：" + array[10];
   
   }
   
@@ -224,7 +228,7 @@ const createRowComp = (array) => {
   const disaportalUrl = `https://disaportal.gsi.go.jp/maps/?ll=${lat},${lng}&z=16&base=pale&ls=disaster${dnum}&disp=1&vs=c1j0l0u0t0h0z0`;
   const googlmapUrl = `https://www.google.co.jp/maps/@${lat},${lng},350m/data=!3m1!1e3?hl=ja`;
   
-  const googleSearchUrl = `https://www.google.com/search?q=${array[3]}+${array[1]}`;
+  const googleSearchUrl = `https://www.google.com/search?q=${array[3]}+${array[2]}`;
   
   row += "<div class='cell map-tools'>"
   row += `<div class='map-move' title='地図を移動'><a href="#map" onClick="mapViewSet(${lat}, ${lng}, 16);">移動</a></div> / `;
@@ -236,7 +240,7 @@ const createRowComp = (array) => {
   
   row += "</div>"; // class='table-row'
   
-  if(bikou) row += `<div class='table-row-note'>※${bikou}</div>`;
+  if(bikou) row += `<div class='table-row-note'>${bikou}</div>`;
   
   return row;
   
