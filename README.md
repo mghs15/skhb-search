@@ -7,14 +7,16 @@
 
 ## 使い方
 新バージョン（新形式データ・指定避難所データに対応）
-* Maplibre 版 https://mghs15.github.io/skhb-search/index-maplibre-v2.html
+* MapLibre 版 https://mghs15.github.io/skhb-search/index-maplibre-v2.html
 
 1. まずは手元に指定緊急避難場所等の CSV データ（国土地理院提供の CSV と同形式）を準備する。
-2. ツール（index.html 等）を開いて、CSV データをアップロード。
-3. 各種条件を調整して、「絞り込み」ボタンを押す。
+  2. または、サンプルデータ（条件は後述）を利用することができます。
+3. ツール（index.html 等）を開いて、CSV データをアップロードする。
+  4. または、「サンプルデータ」ボタンを押して、サンプルをロードする。
+5. 各種条件を調整して、「絞り込み」ボタンを押す。
 
 旧来バージョン
-* Maplibre 版 https://mghs15.github.io/skhb-search/index-maplibre.html
+* MapLibre 版 https://mghs15.github.io/skhb-search/index-maplibre.html
 * Leaflet 版 https://mghs15.github.io/skhb-search/
 
 ※旧来バージョンでは、新形式データ・指定避難所データには対応していません。
